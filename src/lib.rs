@@ -110,9 +110,9 @@ autoreleasepool(|pool| {
 
 * Statically declare [selectors](objc_selector_group!()) and [classes](objc_class!()), [string literals](foundation::objc_nsstring!()), [enums](bindings::objc_enum!()), etc. so they don't have to be looked up at runtime
     * "Groups" that help manage (unmangled) static symbols across crates and compilation units
-* Leverage the Rust typesystem to elide `retain`/`release`/`autorelease` calls in many cases.  This
+* Leverage the Rust typesystem to elide `retain`/`release`/`autorelease` calls in many cases.
 * Participate in [runtime autorelease eliding](objr::performselector::PerformsSelector::perform_autorelease_to_strong_nonnull()) which reduces memory overhead when calling system code
-means that for programs that are mostly Rust, codegeneration may be significantly better even than real ObjC programs.
+This means that for programs that are mostly Rust, codegeneration may be significantly better even than real ObjC programs.
 * Pointer packing for `Option<NSObject>`
 * Smart pointer system, with support for [bindings::StrongCell], [bindings::AutoreleasedCell] and [bindings::UnwrappedCell] (a pointer comparable to Swift's IUO)
 * [Subclassing directly from Rust](objc_subclass!())
