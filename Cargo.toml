@@ -1,0 +1,20 @@
+[package]
+name = "objr"
+version = "0.1.0"
+authors = ["Drew Crawford <drew@sealedabstract.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+procmacro = { path = "procmacro" }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "basic_bench"
+harness = false
+
+[build-dependencies]
+cc = "1"
