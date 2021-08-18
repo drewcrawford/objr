@@ -29,7 +29,7 @@ pub fn static_string(string_literal: &str) -> String {
 			#[link(name="CoreFoundation",kind="framework")]
 			extern {{
 				#[link_name = "\x01___CFConstantStringClassReference"]
-				static CFCONSTANT_STRING_CLASS_REFERENCE : *mut core::ffi::c_void;
+				static CFCONSTANT_STRING_CLASS_REFERENCE : &'static core::ffi::c_void;
 			}}
 
 			//Some kind of magic structure that can be casted to CFString directly
@@ -37,22 +37,22 @@ pub fn static_string(string_literal: &str) -> String {
 			#[repr(C,packed(8))]
 			struct CFStringStatic {{
 				//.quad	___CFConstantStringClassReference
-				constant_string_class_reference: objr::bindings::_SyncWrapper<&'static *mut core::ffi::c_void>,
+				constant_string_class_reference: &'static &'static core::ffi::c_void,
 				//.long	1992
 				magic: u32,
 				// .space	4
 				space: [u8; 4],
 				//.quad	L_.str
-				str: objr::bindings::_SyncWrapper<*const u8>,
+				str: &'static [u8; {LITERAL_LENGTH}],
 				//.quad	[len]
 				magic_2: usize
 			}}
 			#[link_section = "__DATA,__cfstring"]
 			static CFSTRING_REF: CFStringStatic = CFStringStatic {{
-				constant_string_class_reference: unsafe{{ objr::bindings::_SyncWrapper(&CFCONSTANT_STRING_CLASS_REFERENCE)}},
+				constant_string_class_reference: unsafe {{ &CFCONSTANT_STRING_CLASS_REFERENCE }},
 				magic: 1992,
 				space: [0; 4],
-				str: objr::bindings::_SyncWrapper((&STRING_LITERAL) as *const u8),
+				str: &STRING_LITERAL,
 				magic_2: {LITERAL_LENGTH_MINUS_ONE}
 			}};
 			unsafe{{ &*(&CFSTRING_REF as *const _ as *const objr::foundation::NSString) }}

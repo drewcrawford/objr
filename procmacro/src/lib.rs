@@ -55,8 +55,6 @@ pub fn _objc_selector_decl(stream: TokenStream) -> TokenStream {
 /// # extern crate self as objr;
 /// # fn main() { }
 /// # mod bindings {
-/// #    pub struct _SyncWrapper<T>(pub T);
-/// #    unsafe impl<T> core::marker::Sync for _SyncWrapper<T> {}
 /// #    pub struct Sel{ pub ptr: *const std::ffi::c_void }
 /// # }
 /// #
@@ -142,8 +140,6 @@ pub fn _objc_class_decl(stream: TokenStream) -> TokenStream {
 /// #
 /// # mod bindings {
 /// # pub struct AnyClass(core::ffi::c_void);
-/// # pub struct _SyncWrapper<T>(pub T);
-/// # unsafe impl<T> core::marker::Sync for _SyncWrapper<T> {}
 /// # }
 /// # use procmacro::_objc_class_impl;
 /// trait MyTrait { unsafe fn NSObject() -> &'static ::objr::bindings::AnyClass; }
@@ -263,8 +259,6 @@ pub fn objc_implement_class(stream: TokenStream) -> TokenStream {
 /// #
 /// # }
 /// # mod bindings {
-/// #  pub struct _SyncWrapper<T>(pub T);
-/// #  unsafe impl<T> Sync for _SyncWrapper<T> {}
 /// #    use core::ffi::c_void;
 /// # }
 /// use procmacro::objc_nsstring;
