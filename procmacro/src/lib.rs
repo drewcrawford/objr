@@ -63,7 +63,7 @@ pub fn _objc_selector_decl(stream: TokenStream) -> TokenStream {
 /// trait ExampleT{ unsafe fn selector() -> ::objr::bindings::Sel; }
 /// struct ExampleS;
 /// impl ExampleT for ExampleS {
-///     _objc_selector_impl!{"selector","group_name"}
+///     _objc_selector_impl!{"selector"}
 /// }
 ///
 /// ```
@@ -89,17 +89,9 @@ pub fn _objc_selector_impl(stream: TokenStream) -> TokenStream {
         Ok(s) => s,
         Err(e) => return error(&format!("Expected selector literal, but {}",e))
     }.unwrap_literal();
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        other => return error(&format!("Expected `,` but found {:?}",other))
-    }
-    let group_name = match parse_literal_string(&mut iter) {
-        Ok(s) => s,
-        Err(e) => return error(&format!("Expected group_name literal but {}",e))
-    }.unwrap_literal();
     let rust_name = sel_to_rust_name(&selector);
     let mut decl = make_fn_partial(&rust_name);
-    decl += &sel_expression(&selector, &group_name);
+    decl += &sel_expression(&selector);
 
     //check for extra tokens
     match iter.next() {

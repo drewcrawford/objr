@@ -2,28 +2,26 @@
 extern crate proc_macro;
 
 ///An expression for a `Sel` with a dyld-time static
-pub fn sel_expression(selector: &str, selector_group: &str) -> String {
+pub fn sel_expression(selector: &str) -> String {
     let symbol_name = selector.replace(":","_");
     format!(
         r#"
     {{
         #[inline(never)] unsafe fn codegen_workaround() -> ::objr::bindings::Sel {{
             #[link_section = "__TEXT,__objc_methname,cstring_literals"]
-            #[export_name = "\x01L_OBJC_METH_VAR_NAME_.{selector_group}.{symbol_name}"]
             static L_OBJC_METH_VAR_NAME_: [u8; {len}] = *b"{selector}\0";
 
             #[link_section = "__DATA,__objc_selrefs,literal_pointers,no_dead_strip"]
-            #[export_name = "\x01L_OBJC_SELECTOR_REFERENCES_.{selector_group}.{symbol_name}"]
-            static L_OBJC_SELECTOR_REFERENCES_: ::objr::bindings::_SyncWrapper<*const u8> = ::objr::bindings::_SyncWrapper(&L_OBJC_METH_VAR_NAME_ as *const _);
+            static L_OBJC_SELECTOR_REFERENCES_: &'static [u8; {len}] = &L_OBJC_METH_VAR_NAME_;
             //don't let the optimizer look at the value we just set, since it will be fixedup by dyld
-            let read_volatile = ::core::ptr::read_volatile(&L_OBJC_SELECTOR_REFERENCES_.0);
+            let read_volatile: &'static [u8; {len}] = ::core::ptr::read_volatile(&L_OBJC_SELECTOR_REFERENCES_ );
             ::objr::bindings::Sel {{
                ptr: unsafe{{ std::mem::transmute(read_volatile) }}
             }}
         }}
         codegen_workaround()
     }}"#
-        ,selector_group=selector_group,selector=selector,len=selector.len() + 1,symbol_name=symbol_name)
+        ,selector=selector,len=selector.len() + 1)
 }
 
 ///Declares a "partial" fn like `unsafe fn my_selector() -> ::objr::bindings::Sel` with no trailing `;`

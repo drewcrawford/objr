@@ -60,7 +60,6 @@ objc_class! {
 //Declares a group of static selectors.
 objc_selector_group! {
     pub trait NSDateSelectors {
-        let group_name = "example";
         @selector("dateByAddingTimeInterval:")
     }
     //Adds support for these selectors to our `Sel` APIs.

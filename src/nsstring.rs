@@ -15,7 +15,6 @@ objc_class! {
 
 objc_selector_group!(
 	pub trait NSStringSelectors {
-		let group_name="objr";
 		@selector("UTF8String")
 		@selector("initWithBytes:length:encoding:")
 	}

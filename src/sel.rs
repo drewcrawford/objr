@@ -55,7 +55,6 @@ static IMAGE_INFO: [u32; 2] = [0, 64];
 /// use objr::bindings::*;
 /// objc_selector_group!(
 ///         trait NSObjectSelectors {
-///             let group_name = "example";
 ///             @selector("description")
 ///             @selector("respondsToSelector:")
 ///             @selector("init")
@@ -112,7 +111,6 @@ macro_rules! objc_selector_group {
     (
         $(#[$attribute:meta])*
         $pub:vis trait $trait:ident {
-            let group_name = $group_name:literal;
             $(
             @selector($selector:literal))*
         }
@@ -125,7 +123,7 @@ macro_rules! objc_selector_group {
         }
         impl $trait for Sel {
             $(
-                objr::bindings::_objc_selector_impl!{$selector,$group_name}
+                objr::bindings::_objc_selector_impl!{$selector}
             )*
         }
     )

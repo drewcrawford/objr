@@ -20,7 +20,6 @@ unsafe impl Sync for Foo {}
 extern {}
 objc_selector_group!(
         pub trait NSObjectSelectors {
-            let group_name = "objr";
             @selector("alloc")
             @selector("description")
             @selector("respondsToSelector:")
