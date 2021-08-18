@@ -159,6 +159,26 @@ pub fn _objc_class_decl(stream: TokenStream) -> TokenStream {
 ///     _objc_class_impl!(NSObject,"group");
 /// }
 /// ```
+///
+/// Test that defines the same class twice to check for linkage issues
+/// ```
+/// #[link(name="objc",kind="dylib")] extern {}
+/// extern crate self as objr;
+/// fn main() {}
+/// mod bindings {
+///     pub struct AnyClass(core::ffi::c_void);
+/// }
+/// use procmacro::_objc_class_impl;
+/// trait MyTrait { unsafe fn NSObject() -> &'static ::objr::bindings::AnyClass; }
+/// impl MyTrait for ::objr::bindings::AnyClass {
+///     _objc_class_impl!(NSObject);
+/// }
+///
+/// trait MyTrait2 { unsafe fn NSObject() -> &'static ::objr::bindings::AnyClass; }
+/// impl MyTrait2 for ::objr::bindings::AnyClass {
+///     _objc_class_impl!(NSObject);
+/// }
+/// ```
 #[doc(hidden)]
 #[proc_macro]
 pub fn _objc_class_impl(stream: TokenStream) -> TokenStream {
@@ -167,17 +187,7 @@ pub fn _objc_class_impl(stream: TokenStream) -> TokenStream {
         Ok(o) => o,
         Err(err) => {return error(&format!("expected class name, found {}",err))}
     };
-    match iter.next() {
-
-        Some(TokenTree::Punct(punct)) if punct == ',' => (),
-        other => { return error(&format!("Expected `,` found {:?}",other))}
-    }
-
-    let group_name = match parse_literal_string(&mut iter) {
-        Ok(s) => {s}
-        Err(e) => {return error(&format!("Expected group name literal, found {}",e))}
-    }.unwrap_literal();
-    classes::implement_any_class(&class_name, &group_name).parse().unwrap()
+    classes::implement_any_class(&class_name).parse().unwrap()
 }
 
 ///Derive macro for ObjcInstance.

@@ -26,9 +26,7 @@ use objr::bindings::*;
 objc_class! {
     //Rust wrapper type
     pub struct NSDate;
-    //defines a "group" for the symbol.  See documentation
     pub trait NSDateTrait {
-        let group_name="example";
         //ObjC class name
         @class(NSDate)
     }
@@ -52,9 +50,7 @@ use objr::bindings::*;
 objc_class! {
     //Rust wrapper type
     pub struct NSDate;
-    //defines a "group" for the symbol.  See documentation
     pub trait NSDateTrait {
-        let group_name="example";
         //ObjC class name
         @class(NSDate)
     }

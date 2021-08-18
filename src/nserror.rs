@@ -3,7 +3,6 @@ use std::fmt::{Debug};
 objc_class! {
     pub struct NSError;
     pub trait NSErrorTrait {
-        let group_name = "objr";
         @class(NSError)
     }
     impl NSErrorTrait for AnyClass {}

@@ -8,7 +8,6 @@ use crate::objcinstance::NonNullImmutable;
 objc_class! {
 	pub struct NSString;
 	pub trait NSStringTrait {
-		let group_name = "objr";
 		@class(NSString)
 	}
 	impl NSStringTrait for AnyClass {}

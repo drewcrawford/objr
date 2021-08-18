@@ -74,7 +74,6 @@ impl<T: ObjcInstance> NSObjectTrait for T {
 objc_class! {
     pub struct NSObject;
     pub trait NSObjectAnyClassTrait {
-        let group_name = "objr";
         @class(NSObject)
     }
     impl NSObjectAnyTrait for AnyClass {}

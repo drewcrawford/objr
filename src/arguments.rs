@@ -218,7 +218,6 @@ fn perform_super() {
     objc_class! {
         pub struct NSNull;
         pub trait NSNullTrait {
-            let group_name = "test";
             @class(NSNull)
         }
         impl NSNullTrait for AnyClass{}

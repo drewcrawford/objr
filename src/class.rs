@@ -48,8 +48,6 @@ objc_any_class_trait!(
     //will declare a trait with this identifier.
     //In general you want this trait to be public and exported from the crate, see the group_name section.
     pub trait NSObjectClassTrait {
-        //indicates the group_name, see the appropriate section
-        let group_name = "example";
         @class(NSObject)
     }
     //This implementation will be auto-supplied, we include it just to make clear that
@@ -59,17 +57,12 @@ objc_any_class_trait!(
 
 
 ```
-# `group_name`
-See the section in [objc_selector_group!()] for the gory details, but in summary:
-1.  Consider using something unique like the crate name for `group_name`
-2.  Consider exporting the trait as public API, even if you wouldn't otherwise.
 */
 #[macro_export]
 macro_rules! objc_any_class_trait {
     (
         $(#[$attribute:meta])*
         $pub:vis trait $trait:ident {
-            let group_name = $group_name:literal;
             @class($class:ident)
         }
         impl $trait2:ident for AnyClass {}
@@ -78,7 +71,7 @@ macro_rules! objc_any_class_trait {
                 ::objr::bindings::_objc_class_decl!{$class}
         }
         impl $trait for ::objr::bindings::AnyClass {
-                ::objr::bindings::_objc_class_impl!{$class,$group_name}
+                ::objr::bindings::_objc_class_impl!{$class}
         }
     )
 }
@@ -101,7 +94,6 @@ pub trait ObjcClass: ObjcInstance + Sized {
 /// objc_class!{
 /// struct NSString;
 ///     trait NSStringTrait {
-///         let group_name="example";
 ///         @class(NSString)
 ///     }
 ///     impl NSStringTrait for AnyClass{}
@@ -175,8 +167,6 @@ use std::marker::PhantomData;
 ///     pub struct Example;
 ///     //Create an anyclass trait.  It's recommended that this be public API, see the documentation
 ///     pub trait ExampleAnyClassTrait {
-///         //see the section on group_name
-///         let group_name = "example";
 ///         @class(NSObject)
 ///     }
 ///     impl ExampleAnyClassTrait for AnyClass {} //implementation will be auto-supplied
@@ -192,7 +182,6 @@ macro_rules! objc_class  {
         $(#[$traitattribute:meta])*
         $traitpub:vis
         trait $traitname:ident {
-            let group_name = $group_name:literal;
             @class($objcname:ident)
         }
         impl $trait2:ident for AnyClass {}
@@ -205,7 +194,6 @@ macro_rules! objc_class  {
         ::objr::bindings::objc_any_class_trait! {
             $(#[$traitattribute])*
             $traitpub trait $traitname {
-                let group_name = $group_name;
                 @class($objcname)
             }
             impl $trait2 for AnyClass {}

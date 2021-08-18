@@ -5,7 +5,7 @@ pub fn make_fn_partial(class_name: &str) -> String {
 
 
 
-pub fn implement_any_class(class_name: &str, group_name: &str) -> String {
+pub fn implement_any_class(class_name: &str) -> String {
     let header = make_fn_partial(class_name);
     let body = format!(
         r#"{{
@@ -19,12 +19,11 @@ pub fn implement_any_class(class_name: &str, group_name: &str) -> String {
             #[link_section="__DATA,__objc_classrefs,regular,no_dead_strip"]
             //in practice, seems like this can be L_Anything
             //but it needs to not conflict with multiple declarations
-            #[export_name="\x01L_OBJC_CLASSLIST_REFERENCES.{GROUP_NAME}.{CLASS_NAME}"]
-            static CLASS_REF: ::objr::bindings::_SyncWrapper<&'static ::objr::bindings::AnyClass> = ::objr::bindings::_SyncWrapper(unsafe{{ std::mem::transmute(&CLASS) }});
-            ::core::ptr::read_volatile(&CLASS_REF.0)
+            static CLASS_REF: &'static ::objr::bindings::AnyClass = unsafe{{ std::mem::transmute(&CLASS) }};
+            ::core::ptr::read_volatile(&CLASS_REF)
         }}
         merge_compilation_units()
-    }}"#,CLASS_NAME=class_name,GROUP_NAME=group_name);
+    }}"#,CLASS_NAME=class_name);
     let result = header + "\n" + &body;
     result
     // let safe_result = result.replace('"',"\\\"");
