@@ -40,31 +40,35 @@ pub trait NSObjectTrait {
     fn responds_to_selector(&self, pool: &ActiveAutoreleasePool, sel: Sel) -> bool;
 
     ///Calls `[instance init]`.;
-    unsafe fn init(&mut self, pool: &ActiveAutoreleasePool);
+    unsafe fn init(receiver: *mut *mut Self, pool: &ActiveAutoreleasePool);
     unsafe fn conforms_to_protocol(&self, pool: &ActiveAutoreleasePool, protocol: *const std::ffi::c_void) -> bool;
 }
 //"description" will not work unless CoreFoundation is linked
 impl<T: ObjcInstance> NSObjectTrait for T {
     fn description<'a>(&self, pool:  &ActiveAutoreleasePool) -> StrongCell<NSString> {
-        unsafe { self.marker().perform_autorelease_to_strong_nonnull(Sel::description(), pool,((),)) }
+        unsafe {
+            let raw = Self::perform_autorelease_to_retain(self.assuming_nonmut_perform(), Sel::description(), pool, ((),));
+            NSString::assuming_nonnil(raw).assuming_retained()
+        }
     }
     fn responds_to_selector(&self, pool: &ActiveAutoreleasePool, sel: Sel) -> bool {
-        unsafe { self.marker().perform_primitive( Sel::respondsToSelector_(),pool, (sel,)) }
+        unsafe {
+            Self::perform_primitive(self.assuming_nonmut_perform(), Sel::respondsToSelector_(), pool, (sel,))
+        }
     }
     //todo: get a real protocol signature
     unsafe fn conforms_to_protocol(&self, pool: &ActiveAutoreleasePool, protocol: *const core::ffi::c_void) -> bool {
-        self.marker().perform_primitive(Sel::conformsToProtocol_(), pool, (protocol,))
+        Self::perform_primitive(self.assuming_nonmut_perform(), Sel::conformsToProtocol_(), pool, (protocol,))
     }
     ///Initializes the object by calling `[self init]`
     ///
     ///By objc convention, `init` may return a distinct pointer than the one that's passed in.
     /// For this reason, a mutable reference is required.
-    unsafe fn init(&mut self, pool: &ActiveAutoreleasePool) {
-        //init can return a distinct pointer, so we need to write back into the receiver's marker.
-        //This occurs for certain foundation objects, e.g. I have seen it with `NSDate`.
-        use crate::performselector::PerformsSelectorPrivate;
-        let result: GuaranteedMarker<T> = self.marker().perform_unmanaged_nonnull(Sel::init(), pool, ());
-        *self.marker_mut() = result;
+    unsafe fn init(receiver: *mut *mut Self, pool: &ActiveAutoreleasePool) {
+        //init can return a distinct pointer
+        //upcast return type to mutable since it matches the argument
+        let ptr = (Self::perform(*receiver,Sel::init(), pool, ())) as *const T as *mut T;
+        *receiver = ptr;
     }
 }
 objc_class! {

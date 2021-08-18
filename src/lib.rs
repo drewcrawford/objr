@@ -81,18 +81,22 @@ impl NSDate {
         //Use of ObjC is unsafe.  There is no runtime or dynamic checking of your work here,
         //so you must provide a safe abstraction to callers (or mark the enclosing function unsafe).
         unsafe {
-            //access the internal `marker` type for this NSDate instance
-            self.marker()
             /*Convert from an autoreleased return value to a strong one.
             This uses tricks used by real ObjC compilers and is far faster than calling `retain` yourself.
             */
-            .perform_autorelease_to_strong_nonnull(
+            let raw = Self::perform_autorelease_to_retain(
+                //the objc method we are calling does not mutate the receiver
+                self.assuming_nonmut_perform(),
                 ///Use the compile-time selector we declared above
                 Sel::dateByAddingTimeInterval_(),
                 ///Static checking that we have an autoreleasepool available
                  pool,
                  ///Arguments.  Note the trailing `,`
-                 (interval,))
+                 (interval,));
+            //assume the result is nonnil
+            Self::assuming_nonnil(raw)
+            //assume the object is +1 convention (it is, because we called perform_autorelease_to_retain above)
+                .assuming_retained()
         }
     }
 }
@@ -153,7 +157,6 @@ mod objectpointers;
 mod nsobject;
 mod nsstring;
 mod autorelease;
-mod marker;
 mod arguments;
 
 mod performselector;
@@ -184,12 +187,10 @@ pub mod foundation {
 pub mod bindings {
     pub use super::autorelease::ActiveAutoreleasePool;
     pub use super::objectpointers::{StrongCell,AutoreleasedCell,SafePointer};
-    pub use super::marker::{RawMarker,GuaranteedMarker,RawMarkerMutRef};
     pub use super::sel::Sel;
     pub use super::nsobject::NSObjectTrait;
     pub use super::nsobject::NSObject;
-    pub use super::objcinstance::{ObjcInstance,OptionalInstanceBehavior};
-    pub use super::objectpointers::UnwrappedCell;
+    pub use super::objcinstance::{ObjcInstance,OptionalInstanceBehavior,NonNullImmutable};
     pub use super::performselector::{PerformsSelector,PerformablePointer,PerformsSelectorSuper};
     pub use super::class::{ClassMarker};
     pub use super::foundation::*;

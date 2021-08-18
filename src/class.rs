@@ -18,13 +18,8 @@ extern "C" {
 /// Any use of this type is likely unsafe.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct AnyClass(*mut c_void);
+pub struct AnyClass(c_void);
 
-impl AnyClass {
-    ///Unsafe because we literally check nothing, not if the pointer is valid or anything
-    ///Unsafe because use of this class in general is not typesafe
-    pub unsafe fn from_ptr(ptr: *mut c_void) -> Self { AnyClass(ptr)}
-}
 
 /**
 Declares a static (compile-time) class reference, creates a trait to return the reference
@@ -91,15 +86,12 @@ macro_rules! objc_any_class_trait {
 ///Indicates that the given objr instance is also an objr class.
 ///
 /// In particular, this rules out the possibility it is a protocol.
-pub trait ObjcClass: ObjcInstance {
-    fn class() -> ClassMarker<Self>;
+pub trait ObjcClass: ObjcInstance + Sized {
+    fn class() -> &'static ClassMarker<Self>;
 }
 
 
-
-
-
-///Typed pointer to ObjC Class.  Analogous to `Marker`, but for the "class" instead of the instance.
+///Typed pointer to ObjC Class.  Analogous to `*const T`, but points to the class, not the instance.
 ///
 /// Used to call "class methods" like `[alloc]`.
 ///
@@ -121,50 +113,56 @@ pub trait ObjcClass: ObjcInstance {
 /// ```
 #[repr(transparent)]
 #[derive(Debug)]
-pub struct ClassMarker<T: ObjcClass + ?Sized>(*mut c_void, PhantomData<T>);
+pub struct ClassMarker<T: ObjcClass>(c_void, PhantomData<T>);
 
-impl<T: ObjcClass> ClassMarker<T> {
-    ///Unsafe because we don't check the type, or that anyclass is valid at all
-    pub unsafe fn from_anyclass(anyclass: AnyClass) -> Self {
-        ClassMarker(anyclass.0, PhantomData::default())
-    }
-    ///Dynamically creates a Class from some string by querying the ObjC runtime.  Note that in most cases, [ClassMarker::from_anyclass] in combination
-    /// with [objc_class!] macro is a faster implementation because it uses compile-time knowledge.
-    pub unsafe fn from_str(cstr: &CStr) -> Self {
-        let dynamic_class = objc_lookUpClass(cstr.as_ptr());
-        ClassMarker(dynamic_class, PhantomData::default())
-    }
-    ///Converts the receiver to an anyclass
-    pub fn as_anyclass(&self) -> AnyClass {
-        AnyClass(self.0)
+impl<T: ObjcClass> PerformablePointer for ClassMarker<T> {
+
+}
+
+impl<T: ObjcClass> PartialEq for ClassMarker<T> {
+    fn eq(&self, other: &Self) -> bool {
+        //pointer equality
+        let s = self as *const Self;
+        let o = other as *const Self;
+        s == o
     }
 }
+
+impl<T: ObjcClass> ClassMarker<T> {
+    ///Dynamically creates a Class from some string by querying the ObjC runtime.  Note that in most cases, [ClassMarker::from_anyclass] in combination
+    /// with [objc_class!] macro is a faster implementation because it uses compile-time knowledge.
+    pub unsafe fn from_str(cstr: &CStr) -> &'static Self {
+        let dynamic_class = objc_lookUpClass(cstr.as_ptr());
+        &*(dynamic_class as *const Self)
+    }
+    ///Converts the receiver to an anyclass
+    pub fn as_anyclass(&self) -> &'static AnyClass {
+        unsafe{ &*(self as *const _ as *const AnyClass) }
+    }
+}
+
 
 impl<T: ObjcClass> ClassMarker<T> {
     ///`[[Class alloc] init]`
     ///
     pub fn alloc_init(&self, pool: &ActiveAutoreleasePool) -> StrongCell<T> {
         unsafe {
+            //todo: optimize with objc_alloc_init
             let mut cell = self.alloc(pool);
-            cell.init(pool);
-            cell.assuming_retained()
+            T::init(&mut cell, pool);
+            let immutable = cell as *const T;
+            T::assuming_nonnil(immutable).assuming_retained()
         }
     }
     ///`[Class alloc]`
     ///
     /// # Safety
     /// Unsafe becuase the underlying memory is uninitialized after this call
-    pub unsafe fn alloc(&self, pool: &ActiveAutoreleasePool) -> UnwrappedCell<T> {
-        use super::performselector::PerformsSelectorPrivate;
-        UnwrappedCell::new(self.perform_unmanaged_nonnull(Sel::alloc(), pool, ()))
+    pub unsafe fn alloc(&self, pool: &ActiveAutoreleasePool) -> *mut T {
+        Self::perform(self as *const ClassMarker<T> as *mut _, Sel::alloc(), pool, ()) as *const T as *mut T
     }
 }
 
-impl<T: ObjcClass> PerformablePointer for ClassMarker<T> {
-    unsafe fn ptr(&self) -> *mut c_void {
-        self.0
-    }
-}
 
 #[cfg(test)]
 use super::bindings::autoreleasepool;
@@ -223,15 +221,13 @@ macro_rules! objc_class  {
 fn alloc_ns_object() {
     use std::ffi::CString;
     let class = unsafe { ClassMarker::<NSObject>::from_str(CString::new("NSObject").unwrap().as_c_str() ) };
-    assert!(!class.0.is_null())
 }
 #[test]
 fn init_ns_object() {
     autoreleasepool(|pool| {
         let class =  NSObject::class();
         let class2 =  NSObject::class();
-        assert!(!class.0.is_null());
-        assert_eq!(class.0, class2.0);
+        assert_eq!(class, class2);
         let instance =  class.alloc_init(pool);
         let description = instance.description(pool);
         assert!(description.to_str(pool).starts_with("<NSObject"))

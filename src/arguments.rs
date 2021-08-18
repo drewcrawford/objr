@@ -5,7 +5,6 @@
 use super::bindings::*;
 use std::ffi::c_void;
 use std::os::raw::c_char;
-use crate::marker::{RawMarker,GuaranteedMarker,RawMarkerMutRef};
 use std::fmt::Debug;
 
 
@@ -26,16 +25,19 @@ struct ObjcSuper {
 
      This is probably a quirk of objc_msgSendSuper2.
      */
-    class: AnyClass,
+    class: *const AnyClass,
 }
 
 pub trait Arguments: Sized + Debug {
     unsafe fn invoke_primitive<R: Primitive>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, args: Self) -> R;
-    unsafe fn invoke_primitive_super<R: Primitive>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, class: AnyClass, args: Self) -> R;
-    unsafe fn invoke_marker<R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, args: Self) -> RawMarker<R>;
-    unsafe fn invoke_marker_super<R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, class: AnyClass,args: Self) -> RawMarker<R>;
-    unsafe fn invoke_error_trampoline_strong<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, args: Self) -> Result<StrongCell<R>,GuaranteedMarker<NSError>>;
-    unsafe fn invoke_error_trampoline_strong_super<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, class: AnyClass, args: Self) -> Result<StrongCell<R>,GuaranteedMarker<NSError>>;
+    unsafe fn invoke_primitive_super<R: Primitive>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, class: *const AnyClass, args: Self) -> R;
+    unsafe fn invoke<R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, args: Self) -> *const R;
+    unsafe fn invoke_super<R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, class: *const AnyClass,args: Self) -> *const R;
+    unsafe fn invoke_error<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, args: Self) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
+    unsafe fn invoke_error_trampoline_strong<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &'a ActiveAutoreleasePool, args: Self) -> Result<*const R,AutoreleasedCell<'a, NSError>>;
+    unsafe fn invoke_error_trampoline_strong_super<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &'a ActiveAutoreleasePool, class: *const AnyClass, args: Self) -> Result<*const R,AutoreleasedCell<'a, NSError>>;
+    unsafe fn invoke_error_trampoline_super<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, class: *const AnyClass, args: Self) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
+
 }
 
 ///Can be used as an argument in objr
@@ -47,31 +49,6 @@ pub unsafe trait Arguable  {}
 //primitive types
 unsafe impl<P: Primitive> Arguable for P {}
 
-///Marker is [Arguable] directly without trampolining through any Primitive type.
-///
-/// # Warning
-/// `&Marker` is not [Arguable], because when we transmute it we will get the `&Marker`,
-/// which is a different ptr than the `Marker`.  Therefore, you must move this out of a reference
-/// to get it `Arguable`.
-///
-/// # Safety
-///This is safe because Marker is `#[repr(transparent)]`.
-impl<T> super::private::Sealed for RawMarker<T> {}
-unsafe impl<T> Arguable for RawMarker<T> {}
-
-impl<T> super::private::Sealed for GuaranteedMarker<T> {}
-unsafe impl<T> Arguable for GuaranteedMarker<T> {}
-
-
-impl<T> super::private::Sealed for RawMarkerMutRef<'_,T> {}
-/// # Safety
-/// This is safe since `RawMarkerMutRef` is #[repr(transparent)].
-///
-/// We don't allow `&[mut]Marker` to implement `Arguable`, since that is
-/// usually a bug.  However, if you really mean it, you can convert
-/// to `RawMarkerMutRef` which is a reified version.  See [RawMarkerMutRef] documentation
-/// for details.
-unsafe impl<T> Arguable for RawMarkerMutRef<'_,T> {}
 
 ///Non-reference types that are ObjC FFI-safe.  This marker
 /// allows access to the [PerformsSelector::perform_primitive()] family.
@@ -94,6 +71,7 @@ unsafe impl Primitive for f64 {}
 unsafe impl Primitive for () {}
 unsafe impl Primitive for u64{}
 unsafe impl Primitive for c_char {}
+unsafe impl Primitive for *const u8 {}
 unsafe impl Primitive for *const i8 {}
 unsafe impl Primitive for i64 {}
 
@@ -111,7 +89,7 @@ macro_rules! arguments_impl {
                     std::mem::transmute(impcast);
                 imp(obj, sel $(, $identifier)*)
             }
-           #[inline] unsafe fn invoke_primitive_super<R: Primitive>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, class: AnyClass, ($($identifier,)*): Self) -> R {
+           #[inline] unsafe fn invoke_primitive_super<R: Primitive>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, class: *const AnyClass, ($($identifier,)*): Self) -> R {
                let objc_super = ObjcSuper {
                    receiver: obj,
                    class: class
@@ -121,15 +99,15 @@ macro_rules! arguments_impl {
                     std::mem::transmute(impcast);
                 imp(&objc_super, sel $(, $identifier)*)
             }
-            #[inline] unsafe fn invoke_marker<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, ($($identifier,)*): Self) -> RawMarker<R> {
+            #[inline] unsafe fn invoke<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, ($($identifier,)*): Self) -> *const R {
                //autoreleasepool is encouraged by signature but not used
                let impcast = objc_msgSend as unsafe extern fn();
                 let imp: unsafe extern fn(*mut c_void, Sel $(, $type)*) -> *mut c_void =
                     std::mem::transmute(impcast);
                 let ptr = imp(obj, sel $(, $identifier)*);
-                RawMarker::new(ptr)
+                ptr as *const R
             }
-           #[inline] unsafe fn invoke_marker_super<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool,class: AnyClass, ($($identifier,)*): Self) -> RawMarker<R> {
+           #[inline] unsafe fn invoke_super<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool,class: *const AnyClass, ($($identifier,)*): Self) -> *const R {
                let objc_super = ObjcSuper {
                    receiver: obj,
                    class: class
@@ -138,7 +116,7 @@ macro_rules! arguments_impl {
                 let imp: unsafe extern "C" fn(*const ObjcSuper, Sel $(, $type)*) -> *mut c_void =
                     std::mem::transmute(impcast);
                 let ptr = imp(&objc_super, sel $(, $identifier)*);
-                RawMarker::new(ptr)
+                ptr as *const R
             }
 
            ///This function combines various common behaviors in a fast implementation.
@@ -148,52 +126,79 @@ macro_rules! arguments_impl {
            /// 2.  Assumes trailing error parameter
            /// 3.  Caller wants +1 / StrongCell, but callee returns +0 / autoreleased.  Resolved via the magic trampoline `objc_retainAutoreleasedReturnValue`.
            ///
-            #[inline] unsafe fn invoke_error_trampoline_strong<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, ($($identifier,)*): Self) -> Result<StrongCell<R>,GuaranteedMarker<NSError>> {
+            #[inline] unsafe fn invoke_error_trampoline_strong<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, ($($identifier,)*): Self) -> Result<*const R,AutoreleasedCell<'a, NSError>> {
                use crate::performselector::objc_retainAutoreleasedReturnValue;
                let impcast = objc_msgSend as unsafe extern fn();
-               let mut error_marker = RawMarker::<NSError>::nil();
-               let imp: unsafe extern fn(*mut c_void, Sel, $( $type, )* &mut RawMarker<NSError>) -> *mut c_void  = std::mem::transmute(impcast);
-               let ptr = imp(obj,sel, $($identifier,)* &mut error_marker );
+               let mut error: *const NSError = std::ptr::null();
+               let imp: unsafe extern fn(*mut c_void, Sel, $( $type, )* &mut *const NSError) -> *const R  = std::mem::transmute(impcast);
+               let ptr = imp(obj,sel, $($identifier,)* &mut error );
                //ok to call this with nil
-               objc_retainAutoreleasedReturnValue(ptr);
+               objc_retainAutoreleasedReturnValue(ptr as *const c_void);
                if ptr != std::ptr::null_mut() {
-                   let marker = GuaranteedMarker::new_unchecked(ptr);
-                   let cell = UnwrappedCell::<R>::new(marker);
-                   let strong_cell: StrongCell<R> = cell.assuming_retained(); //was retained inside objc_retainAutoreleasedReturnValue
-                   Ok(strong_cell)
+                   Ok(ptr)
                }
                else {
                    //I'm pretty sure it's street-legal to assume this
                    //although if it's not, don't sue me
-                   Err(error_marker.assuming_nonnil())
+                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
                }
-
            }
-           #[inline] unsafe fn invoke_error_trampoline_strong_super<R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, class: AnyClass, ($($identifier,)*): Self) -> Result<StrongCell<R>,GuaranteedMarker<NSError>> {
+           #[inline] unsafe fn invoke_error<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, ($($identifier,)*): Self) -> Result<*const R, AutoreleasedCell<'a, NSError>> {
+               let impcast = objc_msgSend as unsafe extern fn();
+               let mut error: *const NSError = std::ptr::null();
+               let imp: unsafe extern fn(*mut c_void, Sel, $( $type, )* &mut *const NSError) -> *const R  = std::mem::transmute(impcast);
+               let ptr = imp(receiver,sel, $($identifier,)* &mut error );
+               if ptr != std::ptr::null_mut() {
+                   Ok(ptr)
+               }
+               else {
+                   //I'm pretty sure it's street-legal to assume this
+                   //although if it's not, don't sue me
+                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
+               }
+           }
+
+           #[inline] unsafe fn invoke_error_trampoline_strong_super<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, class: *const AnyClass, ($($identifier,)*): Self) -> Result<*const R,AutoreleasedCell<'a, NSError>> {
                let objc_super = ObjcSuper {
                    receiver: obj,
                    class: class
                };
                use crate::performselector::objc_retainAutoreleasedReturnValue;
                let impcast = objc_msgSendSuper2 as unsafe extern fn();
-               let mut error_marker = RawMarker::<NSError>::nil();
-               let imp: unsafe extern fn(*const ObjcSuper, Sel, $( $type, )* &mut RawMarker<NSError>) -> *mut c_void  = std::mem::transmute(impcast);
-               let ptr = imp(&objc_super,sel, $($identifier,)* &mut error_marker );
+               let mut error: *const NSError = std::ptr::null();
+               let imp: unsafe extern fn(*const ObjcSuper, Sel, $( $type, )* &mut *const NSError) -> *const R  = std::mem::transmute(impcast);
+               let ptr = imp(&objc_super,sel, $($identifier,)* &mut error );
                //ok to call this with nil
-               objc_retainAutoreleasedReturnValue(ptr);
+               objc_retainAutoreleasedReturnValue(ptr as *const c_void);
                if ptr != std::ptr::null_mut() {
-                   let marker = GuaranteedMarker::new_unchecked(ptr);
-                   let cell = UnwrappedCell::<R>::new(marker);
-                   let strong_cell: StrongCell<R> = cell.assuming_retained(); //was retained inside objc_retainAutoreleasedReturnValue
-                   Ok(strong_cell)
+                   Ok(ptr)
                }
                else {
                    //I'm pretty sure it's street-legal to assume this
                    //although if it's not, don't sue me
-                   Err(error_marker.assuming_nonnil())
+                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
                }
 
            }
+           #[inline] unsafe fn invoke_error_trampoline_super<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, class: *const AnyClass, ($($identifier,)*): Self) -> Result<*const R, AutoreleasedCell<'a, NSError>> {
+            let objc_super = ObjcSuper {
+                   receiver: receiver,
+                   class: class
+               };
+               let impcast = objc_msgSendSuper2 as unsafe extern fn();
+               let mut error: *const NSError = std::ptr::null();
+               let imp: unsafe extern fn(*const ObjcSuper, Sel, $( $type, )* &mut *const NSError) -> *const R  = std::mem::transmute(impcast);
+               let ptr = imp(&objc_super,sel, $($identifier,)* &mut error );
+               if ptr != std::ptr::null_mut() {
+                   Ok(ptr)
+               }
+               else {
+                   //I'm pretty sure it's street-legal to assume this
+                   //although if it's not, don't sue me
+                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
+               }
+            }
+
         }
 
     );
@@ -219,16 +224,14 @@ fn perform_super() {
         impl NSNullTrait for AnyClass{}
     }
     autoreleasepool(|pool| {
-        use crate::performselector::PerformablePointer;
         let o = NSNull::class().alloc_init(pool);
 
         let args = ();
         use objr::foundation::*;
         //perform "super" description
-        let d: RawMarker<NSString> = unsafe{ <()>::invoke_marker_super(o.marker().ptr(), Sel::description(), pool, NSNull::class().as_anyclass(), args) };
-        let g: GuaranteedMarker<NSString> = GuaranteedMarker::try_unwrap(d).unwrap();
-        let as_nsstring = NSString::from_guaranteed(g);
-        let super_description = as_nsstring.to_str(pool);
+        let d: *const NSString = unsafe{ <()>::invoke_super(o.as_ptr() as *const NSNull as *mut NSNull as *mut c_void, Sel::description(), pool, NSNull::class().as_anyclass(), args) };
+        let g: &NSString = unsafe{ &*d};
+        let super_description = g.to_str(pool);
         assert!(super_description.starts_with("<NSNull:"));
     });
 

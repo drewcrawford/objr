@@ -2,9 +2,8 @@
 //!
 use super::bindings::*;
 use std::ffi::{CStr};
-use super::objcinstance::{ObjcInstance};
-use core::ffi::c_void;
-use std::os::raw::c_long;
+use std::os::raw::{c_char};
+use crate::objcinstance::NonNullImmutable;
 
 objc_class! {
 	pub struct NSString;
@@ -19,54 +18,38 @@ objc_selector_group!(
 	pub trait NSStringSelectors {
 		let group_name="objr";
 		@selector("UTF8String")
+		@selector("initWithBytes:length:encoding:")
 	}
 	impl NSStringSelectors for Sel {}
 );
-type CFIndex = c_long; //signed long
 
-//defined in CFStringBuiltInEncodings
-#[allow(non_snake_case, non_upper_case_globals)]
-const CFStringEncodingUTF8: CFIndex = 0x08000100;
+#[allow(non_upper_case_globals)]
+const NSUTF8StringEncoding: NSUInteger = 4;
 
-#[repr(transparent)]
-struct CFStringRef(*const c_void);
 
-#[allow(non_snake_case)]
-extern {
-	fn CFStringCreateWithBytes(allocatorRef: *const c_void,bytes: *const u8, numBytes: CFIndex, encoding: CFIndex, isExternalRepresentation:bool) -> CFStringRef;
-}
+
 
 impl NSString {
-	///A constant-time initializer for `NSString`, primarily used from the [objc_nsstring!()] macro.
-	pub const fn from_guaranteed(marker: GuaranteedMarker<NSString>) -> Self {
-		NSString(marker)
-	}
 	///Converts to a stringslice
 	pub fn to_str(&self, pool: &ActiveAutoreleasePool) -> &str {
 		unsafe {
-			let str_pointer = self.marker().perform_inner_ptr(Sel::UTF8String(),pool, ());
+			let str_pointer: *const c_char = Self::perform_primitive(self.assuming_nonmut_perform(), Sel::UTF8String(), pool, ());
 			let msg = CStr::from_ptr(str_pointer);
 			msg.to_str().unwrap()
 		}
 	}
-	///This will create an NSString from the argument.  Internally foundation will
-	/// copy the pointer to its own memory.
-	pub fn from_str(_pool: &ActiveAutoreleasePool, str: &str) -> StrongCell<Self> {
-		let bytes = str.as_bytes();
-		use std::convert::TryInto;
-		let bytes_len = bytes.len().try_into().unwrap();
+	///Copies the string into foundation storage
+	pub fn with_str_copy(str: &str, pool: &ActiveAutoreleasePool) -> StrongCell<NSString> {
 		unsafe {
-			let string_ref = CFStringCreateWithBytes(std::ptr::null(),
-													bytes.as_ptr(), bytes_len,
-													CFStringEncodingUTF8,
-													false);
-			//CFStringRef is toll-free bridged, meaning the inner pointer "is" an `NSString`
-			//transmute works around mutability
-			let marker = GuaranteedMarker::new_unchecked(std::mem::transmute(string_ref.0));
-			//CFStringCreate returns +1
-			marker.assuming_retained()
-		}
+			let instance = Self::class().alloc(pool);
+			let bytes = str.as_bytes().as_ptr();
+			let len = str.as_bytes().len() as NSUInteger;
 
+			let instance: *const NSString = Self::perform(instance,Sel::initWithBytes_length_encoding(),pool, (bytes,len,NSUTF8StringEncoding));
+			//although this method is technically nullable, the fact that the string is already statically known to be utf8
+			//suggests we should be fine
+			NonNullImmutable::assuming_nonnil(instance).assuming_retained()
+		}
 	}
 }
 
@@ -74,7 +57,7 @@ impl NSString {
 #[test] fn from_str() {
 	let example = "example string here";
 	autoreleasepool(|pool| {
-		let nsstring = NSString::from_str(pool, example);
+		let nsstring = NSString::with_str_copy(example, pool);
 		assert_eq!(nsstring.to_str(pool), example);
 	})
 }

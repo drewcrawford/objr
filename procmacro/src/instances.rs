@@ -2,15 +2,6 @@
 pub fn instance_impl(_type: &str) -> String{
     format!(r#"
     unsafe impl ::objr::bindings::ObjcInstance for {TYPE} {{
-            #[inline] unsafe fn new(marker: ::objr::bindings::GuaranteedMarker<Self>) -> Self {{
-                Self(marker)
-            }}
-            #[inline] fn marker(&self) -> &::objr::bindings::GuaranteedMarker<Self> {{
-                &self.0
-            }}
-            #[inline] fn marker_mut(&mut self) -> &mut::objr::bindings::GuaranteedMarker<Self> {{
-                &mut self.0
-            }}
         }}
         impl std::fmt::Display for {TYPE} {{
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {{

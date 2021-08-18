@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-extern crate objc;
+extern crate objr;
 use objr::foundation::*;
 
 fn alloc_init_description(c: &mut Criterion) {

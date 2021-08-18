@@ -26,6 +26,7 @@ pub fn static_string(string_literal: &str) -> String {
          */
 			#[link_section = "__TEXT,__cstring,cstring_literals"]
 			static STRING_LITERAL: [u8; {LITERAL_LENGTH}] = *b"{STRING_LITERAL}\0";
+			#[link(name="CoreFoundation",kind="framework")]
 			extern {{
 				#[link_name = "\x01___CFConstantStringClassReference"]
 				static CFCONSTANT_STRING_CLASS_REFERENCE : *mut core::ffi::c_void;
@@ -54,8 +55,7 @@ pub fn static_string(string_literal: &str) -> String {
 				str: objr::bindings::_SyncWrapper((&STRING_LITERAL) as *const u8),
 				magic_2: {LITERAL_LENGTH_MINUS_ONE}
 			}};
-			static NSSTRING_EXPRESSION: objr::bindings::_SyncWrapper<objr::foundation::NSString> = unsafe{{ objr::bindings::_SyncWrapper(objr::foundation::NSString::from_guaranteed(objr::bindings::GuaranteedMarker::new_unchecked(std::mem::transmute(&CFSTRING_REF)))) }};
-			&NSSTRING_EXPRESSION.0
+			unsafe{{ &*(&CFSTRING_REF as *const _ as *const objr::foundation::NSString) }}
 		}}
 		codegen_workaround()
 	}}

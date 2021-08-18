@@ -260,7 +260,7 @@ macro_rules! __objc_subclass_impl_payload_access {
             $pub unsafe fn payload_mut(&self) -> &mut $payload {
                 use objr::bindings::PerformablePointer;
                 //convert to u8 to get byte offset
-                let self_addr = (self.marker().ptr() as *const u8);
+                let self_addr = (self as *const _ as *const u8);
                 //offset by FRAGILE_BASE_CLASS
                 //Note that a real objc compiler will optimize `FRAGILE_BASE_CLASS_OFFSET` to 8
                 //when the superclass is known to be `NSObject` (e.g. the class is not fragile).
@@ -309,9 +309,8 @@ macro_rules! __objc_subclass_implpart_finalize {
         //We avoid using `objc_class!` macro here since it imports
         //an external class.  Instead we provide our own conformance.
         impl objr::bindings::ObjcClass for $identifier {
-            #[inline] fn class() -> ClassMarker<Self> {
-                let any_class = unsafe{ AnyClass::from_ptr(std::mem::transmute(&CLASS)) };
-                unsafe {ClassMarker::from_anyclass(any_class) }
+            #[inline] fn class() -> &'static ClassMarker<Self> {
+                unsafe{ &*(&CLASS.0 as *const _ as *const ClassMarker<Self>) }
             }
         }
     }
@@ -475,9 +474,9 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 /// The first argument to your C function is a pointer to `self`, and the second argument is a selector-pointer.
 /// You may use any memory-compatible types for these arguments in Rust.  For example, the self argument can be
 /// * `*const c_void` or `*mut c_void`.
-/// * `GuaranteedMarker<CompatibleClass>` e.g. `GuaranteedMarker<Example>`, `GuaranteedMarker<Superclass>`, etc.
-/// * `Example` (it's memory-compatible with the `GuaranteedMarker<Example>`).  Convenience functions are implemented
-///   on the wrapper type so this may be the useful one.
+/// * `*const Example` or `*mut Example` (it's memory-compatible with the `*const c_void`).  Convenience functions are implemented
+///   on the wrapper type so this may be the useful one.  Keep in mind that it's up to you to not mutate from an immutable context.
+///   For more info, see [objc_instance!#safety]
 ///
 /// For the selector argument, typically you use `Sel`.  `*const c_void` and `*const c_char` are also allowed.
 ///
@@ -520,13 +519,12 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 ///     }
 /// }
 ///
-///     extern "C" fn init(objcSelf: Example, sel: Sel) -> Example {
-///         let objc_self = objcSelf.marker();
-///         let u: UnwrappedCell<Example> = unsafe{ objc_self.perform_super_unmanaged_nonnull(Sel::init(), &ActiveAutoreleasePool::__fake(), ()) } ;
+///     extern "C" fn init(objcSelf: *mut Example, sel: Sel) -> *const Example {
+///         let new_self: &Example = unsafe{ &*(Example::perform_super(objcSelf,  Sel::init(), &ActiveAutoreleasePool::__fake(), ()))};
 ///         //initialize the payload to 5
-///         *(unsafe{objcSelf.payload_mut()}) = 5;
+///         *(unsafe{new_self.payload_mut()}) = 5;
 ///         //return self per objc convention
-///         objcSelf
+///         new_self
 ///     }
 ///```
 /// ### Payload memory management
@@ -634,12 +632,9 @@ mod example {
      }
 }
 
-    extern "C" fn sample(objc_s: * mut c_void, _sel: Sel) -> GuaranteedMarker<Example> {
+    extern "C" fn sample(objc_self: &Example, _sel: Sel) -> *const Example {
         println!("init from rust");
-        //we know, since we are called, that objcSelf arg is not nil
-        let objc_self = unsafe{ GuaranteedMarker::<Example>::new_unchecked(objc_s) };
-        let u: UnwrappedCell<Example> = unsafe{ objc_self.perform_super_unmanaged_nonnull(Sel::init(), &ActiveAutoreleasePool::__fake(), ()) } ;
-        unsafe{ u.marker().unsafe_clone() }
+        unsafe{ Example::perform_super(objc_self.assuming_nonmut_perform(),Sel::init(), &ActiveAutoreleasePool::__fake(), ()) }
     }
 }
 
@@ -670,12 +665,10 @@ mod example_payload_methods {
      }
 }
 
-    extern "C" fn sample(objc_s: ExamplePayloadMethods, _sel: Sel) -> GuaranteedMarker<ExamplePayloadMethods> {
-        println!("init ExamplePayloadMethods from rust");
-        let objc_self = objc_s.marker();
-        let u: UnwrappedCell<ExamplePayloadMethods> = unsafe{ objc_self.perform_super_unmanaged_nonnull(Sel::init(), &ActiveAutoreleasePool::__fake(), ()) } ;
-        *(unsafe{objc_s.payload_mut()}) = 5;
-        unsafe{ u.marker().unsafe_clone() }
+    extern "C" fn sample(objc_self: &ExamplePayloadMethods, _sel: Sel) -> *const ExamplePayloadMethods {
+        let new_self: &ExamplePayloadMethods = unsafe{ &*ExamplePayloadMethods::perform_super(objc_self.assuming_nonmut_perform(), Sel::init(),&ActiveAutoreleasePool::__fake(), () ) };
+        *(unsafe{new_self.payload_mut()}) = 5;
+        new_self
     }
 }
 
@@ -695,9 +688,8 @@ mod example_dealloc {
      }
 }
 
-    extern "C" fn dealloc(objc_s: ExampleDealloc, _sel: Sel) {
-        let objc_self = objc_s.marker();
-        let _: () = unsafe{ objc_self.perform_super_primitive(Sel::from_str("dealloc"), &ActiveAutoreleasePool::__fake(), ())};
+    extern "C" fn dealloc(objc_self: &mut ExampleDealloc, _sel: Sel) {
+        let _: () = unsafe{ ExampleDealloc::perform_super_primitive(objc_self, Sel::from_str("dealloc"), &ActiveAutoreleasePool::__fake(), ())};
         DEALLOC_COUNT.store(true,Ordering::SeqCst);
     }
 }

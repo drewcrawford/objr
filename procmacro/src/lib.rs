@@ -149,14 +149,12 @@ pub fn _objc_class_decl(stream: TokenStream) -> TokenStream {
 /// # fn main() {}
 /// #
 /// # mod bindings {
-/// # pub struct AnyClass(*mut core::ffi::c_void);
+/// # pub struct AnyClass(core::ffi::c_void);
 /// # pub struct _SyncWrapper<T>(pub T);
 /// # unsafe impl<T> core::marker::Sync for _SyncWrapper<T> {}
-/// # impl AnyClass { pub fn from_ptr(ptr: *mut core::ffi::c_void) -> Self { todo!() }}
 /// # }
 /// # use procmacro::_objc_class_impl;
-/// #
-/// trait MyTrait { unsafe fn NSObject() -> ::objr::bindings::AnyClass; }
+/// trait MyTrait { unsafe fn NSObject() -> &'static ::objr::bindings::AnyClass; }
 /// impl MyTrait for ::objr::bindings::AnyClass {
 ///     _objc_class_impl!(NSObject,"group");
 /// }
@@ -218,18 +216,17 @@ pub fn derive_objc_instance(stream: TokenStream) -> TokenStream {
 /// # extern crate self as objr; //pretend we're objr crate
 /// # pub mod bindings { //shim objr objects
 /// #   use std::marker::PhantomData;
-/// #   pub struct ClassMarker<T: ?Sized>(PhantomData<T>);
+/// #   pub struct ClassMarker<T: ?Sized>(core::ffi::c_void, PhantomData<T>);
 /// #   pub struct AnyClass;
-/// #   impl<T> ClassMarker<T> { pub fn from_anyclass(any_class: AnyClass) -> Self { ClassMarker(PhantomData::default() )}}
-/// #   pub trait ObjcClass { fn class() -> ClassMarker<Self>; }
+/// #   pub trait ObjcClass { fn class() -> &'static ClassMarker<Self>; }
 /// # }
 /// use procmacro::objc_implement_class;
-/// struct RustIdentifier;
+/// struct RustIdentifier(core::ffi::c_void);
 /// trait InScopeAutoTrait {
-///     fn NSObject() -> objr::bindings::AnyClass;
+///     fn NSObject() -> &'static objr::bindings::AnyClass;
 /// }
 /// impl InScopeAutoTrait for objr::bindings::AnyClass {
-///      fn NSObject() -> objr::bindings::AnyClass { todo!() }
+///      fn NSObject() -> &'static objr::bindings::AnyClass { todo!() }
 /// }
 /// objc_implement_class!{RustIdentifier,NSObject}
 /// ```
@@ -261,18 +258,12 @@ pub fn objc_implement_class(stream: TokenStream) -> TokenStream {
 /// # extern crate self as objr;
 /// # mod foundation {
 /// #    pub struct NSString;
-/// #    impl NSString {
-/// #        pub const fn from_guaranteed(g: super::bindings::GuaranteedMarker)  -> Self { NSString }
-/// #     }
+/// #
 /// # }
 /// # mod bindings {
 /// #  pub struct _SyncWrapper<T>(pub T);
 /// #  unsafe impl<T> Sync for _SyncWrapper<T> {}
-/// #  pub struct GuaranteedMarker;
 /// #    use core::ffi::c_void;
-/// #    impl GuaranteedMarker {
-/// #      pub const fn new_unchecked(a: *mut c_void) -> Self { GuaranteedMarker }
-/// #    }
 /// # }
 /// use procmacro::objc_nsstring;
 /// # fn main() {
