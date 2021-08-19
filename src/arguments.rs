@@ -228,7 +228,7 @@ fn perform_super() {
         let args = ();
         use objr::foundation::*;
         //perform "super" description
-        let d: *const NSString = unsafe{ <()>::invoke_super(o.as_ptr() as *const NSNull as *mut NSNull as *mut c_void, Sel::description(), pool, NSNull::class().as_anyclass(), args) };
+        let d: *const NSString = unsafe{ <()>::invoke_super(StrongCell::as_ptr(&o) as *const NSNull as *mut NSNull as *mut c_void, Sel::description(), pool, NSNull::class().as_anyclass(), args) };
         let g: &NSString = unsafe{ &*d};
         let super_description = g.to_str(pool);
         assert!(super_description.starts_with("<NSNull:"));

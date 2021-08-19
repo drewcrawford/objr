@@ -34,15 +34,22 @@ extern "C" {
     fn objc_release(ptr: *const c_void);
     fn objc_autorelease(ptr: *const c_void);
 }
-///A trait that gurantees an ObjC object is valid.
+///A trait that guarantees an ObjC object is valid.
 ///
 /// This allows various 'safe versions' of methods to exist that are checked by the compiler.
 pub trait SafePointer {
     type T: ObjcInstance;
-    fn as_ptr(&self) -> &Self::T;
-    fn as_nonnull(&self) -> NonNullImmutable<Self::T> {
+    fn as_ptr(ptr: &Self) -> &Self::T;
+}
+
+trait SafePointerBehavior: SafePointer {
+    fn as_nonnull(ptr: &Self) -> NonNullImmutable<Self::T>;
+}
+impl<T: SafePointer> SafePointerBehavior for T {
+    fn as_nonnull(ptr: &Self) -> NonNullImmutable<Self::T> {
         //should be safe because we are a safe pointer
-        unsafe{ NonNullImmutable::assuming_nonnil(self.as_ptr() as *const Self::T) }
+        unsafe{ NonNullImmutable::assuming_nonnil(Self::as_ptr(ptr) as *const Self::T) }
+
     }
 }
 
@@ -70,9 +77,9 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
     }
 
     ///Converts to [Self] by autoreleasing the [SafePointer<T>].
-    pub fn autoreleasing<SafeCell: SafePointer<T=T>>(cell: SafeCell, pool: &'a ActiveAutoreleasePool) -> Self {
+    pub fn autoreleasing<SafeCell: SafePointer<T=T>>(cell: &SafeCell, pool: &'a ActiveAutoreleasePool) -> Self {
         unsafe {
-            Self::_autoreleasing(cell.as_nonnull(),pool)
+            Self::_autoreleasing(SafeCell::as_nonnull(cell),pool)
         }
     }
 }
@@ -91,9 +98,9 @@ impl<'a, T> super::private::Sealed for AutoreleasedCell<'a, T> { }
 //is a safe type
 impl<'a, T: ObjcInstance> SafePointer for AutoreleasedCell<'a, T> {
     type T = T;
-    fn as_ptr(&self) -> &T {
+    fn as_ptr(ptr: &Self) -> &T {
         //should be safe because this type is a safe cell
-        unsafe{ &*self.ptr.as_ptr()}
+        unsafe{ &*ptr.ptr.as_ptr()}
     }
 }
 
@@ -138,32 +145,20 @@ For an elided 'best case' version, see `RefCell`.
 #[derive(Debug)]
 pub struct StrongCell<T: ObjcInstance>(*const T);
 impl<T: ObjcInstance> StrongCell<T> {
-    pub unsafe fn retaining<SafeCell: SafePointer<T=T>>(cell: SafeCell) -> Self {
-        objc_retain(cell.as_ptr() as *const _ as *const c_void);
+    pub unsafe fn retaining<SafeCell: SafePointer<T=T>>(cell: &SafeCell) -> Self {
+        objc_retain(SafeCell::as_ptr(cell) as *const _ as *const c_void);
         //safe because `cell` is owned here
-        Self::assuming_retained(cell.as_nonnull())
+        Self::assuming_retained(SafeCell::as_nonnull(cell))
     }
 
     ///Converts to [AutoreleasedCell] by calling `autorelease` on `self`.
     ///
     ///Safe, but needs to be a moving function, because the StrongCell will not be valid once we
     /// decrement its reference counter.
-    pub fn autoreleasing(self, pool: &ActiveAutoreleasePool) -> AutoreleasedCell<T> {
-        AutoreleasedCell::autoreleasing(self, pool)
+    pub fn autoreleasing<'a>(cell: &Self, pool: &'a ActiveAutoreleasePool) -> AutoreleasedCell<'a, T> {
+        AutoreleasedCell::autoreleasing(cell, pool)
     }
 
-    ///Converts to `UnwrappedCell`.
-    ///
-    /// # Safety
-    ///
-    /// This function LEAKS.  The underlying memory will not be decremented by Rust code.
-    ///
-    /// This pattern is useful when implementing a +1 return convention from Rust.
-    pub fn leak(self) -> *const T {
-        let unmanaged = self.0;
-        std::mem::forget(self);
-        unmanaged
-    }
 }
 
 impl<T: ObjcInstance> StrongCell<T> {
@@ -180,8 +175,8 @@ impl<T: ObjcInstance> StrongCell<T> {
 impl<T: ObjcInstance> super::private::Sealed for StrongCell<T> { }
 impl<T: ObjcInstance> SafePointer for StrongCell<T> {
     type T = T;
-    fn as_ptr(&self) -> &T {
-        unsafe{ &*self.0}
+    fn as_ptr(ptr: &Self) -> &T {
+        unsafe{ &*ptr.0}
     }
 }
 impl<T: ObjcInstance> Drop for StrongCell<T> {
@@ -190,7 +185,7 @@ impl<T: ObjcInstance> Drop for StrongCell<T> {
             if DEBUG_MEMORY {
                 println!("Drop {} {:p}",std::any::type_name::<T>(), self);
             }
-            objc_release(self.as_ptr() as *const _ as *const c_void);
+            objc_release(Self::as_ptr(self) as *const _ as *const c_void);
         }
     }
 }
