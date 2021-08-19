@@ -4,6 +4,7 @@ use super::bindings::*;
 use std::ffi::{CStr};
 use std::os::raw::{c_char};
 use crate::objcinstance::NonNullImmutable;
+use objr::typealias::NSUInteger;
 
 objc_class! {
 	pub struct NSString;

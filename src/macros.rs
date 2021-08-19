@@ -10,7 +10,7 @@
 /// ```
 ///# use objr::bindings::*;
 ///objc_enum! {
-///     pub struct MTLPixelFormat<NSUInteger>;
+///     pub struct MTLPixelFormat<u32>;
 ///     impl MTLPixelFormat {
 ///         MTLPixelFormatInvalid = 0
 ///     }

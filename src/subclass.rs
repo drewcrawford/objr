@@ -249,12 +249,16 @@ macro_rules! __objc_subclass_implpart_ivar_list {
 macro_rules! __objc_subclass_impl_payload_access {
     ($pub:vis, $identifier:ident,$payload:ty, $FRAGILE_BASE_CLASS_OFFSET:ident) => {
         impl $identifier {
-            ///Unsafe because there is no guarantee this is an exclusive mut
+            /// Gets a mutable reference to the underlying payload.
+            ///
+            /// # Safety
+            /// You must guarantee you are called from an exclusive, mutable context.
+            ///
+            /// # Design
             /// Similar to `UnsafeCell`, but
             /// 1.  Difficult to initialize a cell here
             /// 2.  I'm not sure if `UnsafeCell` is FFI-safe
             /// 3.  In practice, you need to initialize the objc memory close to 100% of the time to avoid UB.
-            /// Just going to implement a mut getter and label it unsafe
             #[allow(dead_code)]
             $pub unsafe fn payload_mut(&self) -> &mut $payload {
                 //convert to u8 to get byte offset
@@ -304,9 +308,10 @@ macro_rules! __objc_subclass_implpart_finalize {
         objc_instance! {
             pub struct $identifier;
         }
-        //We avoid using `objc_class!` macro here since it imports
-        //an external class.  Instead we provide our own conformance.
-        impl objr::bindings::ObjcClass for $identifier {
+        //We avoid using `objc_class!` macro here since it imports an external ObjC class.
+        //As we are exporting a class, we provide our own conformance.
+        //Should be safe because we're declaring the type
+        unsafe impl objr::bindings::ObjcClass for $identifier {
             #[inline] fn class() -> &'static ::objr::bindings::Class<Self> {
                 unsafe{ &*(&CLASS.0 as *const _ as *const ::objr::bindings::Class<Self>) }
             }

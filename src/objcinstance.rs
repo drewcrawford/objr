@@ -140,7 +140,9 @@ use objr::bindings::*;
 ///NSExample is some objc instance (such as a protocol or similar).
 //If it were a class, consider objc_class! for extra features.
 objc_instance! {
-    //declares a Rust struct that maps to NSExample
+    //declares a Rust struct for this type.
+    //Note that there is no real connection to the actual objc type, you can name it anything.
+    //The connection arises by casting some pointer to this type, such as the result of [PerformsSelector::perform].
     pub struct NSExample;
 }
 //We can write normal Rust functions on our type

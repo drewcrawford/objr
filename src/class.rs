@@ -18,17 +18,21 @@ extern "C" {
 #[repr(transparent)]
 pub struct AnyClass(c_void);
 
-///Indicates that the given objr instance is also an objr class.
+///A trait for Rust types that map to ObjC classes.
+///
+/// This is similar to [ObjcInstance] (and requires it) but imposes additional class requirements.
 ///
 /// In particular, this rules out the possibility it is a protocol.
 ///
+///
 /// # Stability
 /// It is not stable API to impelment this trait directly.  Instead use the [objc_class!] macro.
-pub trait ObjcClass: ObjcInstance + Sized {
+///
+/// # Safety
+/// This is unsafe because there's no way to check it's actually a class, and if it isn't there's UB involved
+pub unsafe trait ObjcClass: ObjcInstance + Sized {
     fn class() -> &'static Class<Self>;
 }
-
-
 
 
 
@@ -42,7 +46,6 @@ pub trait ObjcClass: ObjcInstance + Sized {
 pub struct Class<T: ObjcClass>(c_void, PhantomData<T>);
 
 ///Classes can use performSelector
-impl<T: ObjcClass> objr::private::Sealed for Class<T> {}
 unsafe impl<T: ObjcClass> PerformablePointer for Class<T> {}
 
 impl<T: ObjcClass> PartialEq for Class<T> {
@@ -170,5 +173,4 @@ fn init_ns_object() {
     let description = instance.description(&pool);
     assert!(description.to_str(&pool).starts_with("<NSObject"))
 }
-
 

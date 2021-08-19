@@ -163,7 +163,6 @@ mod exception;
 ///This prelude provides a "foundation-like" experience.  This brings
 /// in various foundation types, like NSObject, NSString, etc.
 pub mod foundation {
-    pub use super::typealias::*;
     pub use super::nsstring::NSString;
     pub use super::nsobject::NSObject;
     pub use super::nsobject::NSObjectTrait;
