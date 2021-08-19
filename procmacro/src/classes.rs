@@ -1,3 +1,6 @@
+//! Contains the implementation for ::objr::bindings::ObjcClass.
+
+
 ///Emits `unsafe fn NSExample() -> AnyClass` with no semicolon
 pub fn make_fn_partial(class_name: &str) -> String {
     format!("unsafe fn {}() -> &'static ::objr::bindings::AnyClass",class_name)

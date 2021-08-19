@@ -7,13 +7,13 @@ use std::ffi::c_void;
 use std::os::raw::c_char;
 use std::fmt::Debug;
 
-
 #[link(name="objc", kind="dylib")]
 extern "C" {
     fn objc_msgSend();
-    //Undocumented, but this call goes directly to super.  Do not pass go, do not try `self`.
+    //Undocumented, but part of ABI.  This call goes directly to super.  Do not pass go, do not try `self`.
     fn objc_msgSendSuper2();
 }
+
 //defined in https://opensource.apple.com/source/objc4/objc4-371.2/runtime/message.h
 //This is the first argument to `objc_msgSendSuper2` instead of the receiver
 #[repr(C)]
@@ -28,21 +28,34 @@ struct ObjcSuper {
     class: *const AnyClass,
 }
 
-pub trait Arguments: Sized + Debug {
+///Trait describing a type that can be used as arugments.  Generally, this is a tuple of all the arguments to some method.
+///
+/// This type is sealed; you may not implement it from outside the crate.
+/// All implementations are provided via macro.
+pub trait Arguments: Sized + Debug + crate::private::Sealed {
+    ///Implementation deatil of [PerformsSelector::perform_primitive]
     unsafe fn invoke_primitive<R: Primitive>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, args: Self) -> R;
+    ///Implementation detail of [PerformsSelectorSuper::perform_super_primitive]
     unsafe fn invoke_primitive_super<R: Primitive>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, class: *const AnyClass, args: Self) -> R;
+    ///Implementation detail of [PerformsSelector::perform]
     unsafe fn invoke<R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, args: Self) -> *const R;
+    ///Implementation detail of [PerformsSelectorSuper::perform_super]
     unsafe fn invoke_super<R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, class: *const AnyClass,args: Self) -> *const R;
+    ///Implementation detail of [PerformsSelector::perform_result]
     unsafe fn invoke_error<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, args: Self) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
+    ///Implementation detail of [PerformablePointer::perform_result_autorelease_to_retain]
     unsafe fn invoke_error_trampoline_strong<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &'a ActiveAutoreleasePool, args: Self) -> Result<*const R,AutoreleasedCell<'a, NSError>>;
+    ///Implementation detail of [PerformsSelectorSuper::perform_super_result_autorelease_to_retain]
     unsafe fn invoke_error_trampoline_strong_super<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &'a ActiveAutoreleasePool, class: *const AnyClass, args: Self) -> Result<*const R,AutoreleasedCell<'a, NSError>>;
+    ///Implementation detail of [PerformsSelectorSuper::perform_super_autorelease_to_retain]
     unsafe fn invoke_error_trampoline_super<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, class: *const AnyClass, args: Self) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
-
 }
 
 ///Can be used as an argument in objr
 ///
 /// This constraint provides additional safety around transmuting fp types.
+///
+/// # Safety
 /// The primary constraint of this protocol is it needs to be `#[repr(transparent)]`.
 /// Since this cannot be otherwise verified, we're going to declare it `unsafe`.
 pub unsafe trait Arguable  {}
@@ -58,7 +71,7 @@ unsafe impl<P: Primitive> Arguable for P {}
 /// e.g., ffi-safe.
 ///
 /// # Note
-/// This is unsealed because we want to allow structs to be declared as primitves in external crates.
+/// This is unsealed because we want to allow structs to be declared as primitives in external crates.
 pub unsafe trait Primitive {}
 
 
@@ -75,12 +88,13 @@ unsafe impl Primitive for *const u8 {}
 unsafe impl Primitive for *const i8 {}
 unsafe impl Primitive for i64 {}
 
-
+///Implementation macro for declaring [Argument] types.
 macro_rules! arguments_impl {
-
     (
         $($identifier:ident : $type:ident),*
     ) => (
+        //seal the type
+        impl<$($type:Arguable),*> crate::objr::private::Sealed for ($($type,)*) where $($type: Debug),* {}
         impl<$($type:Arguable),*> Arguments for ($($type,)*) where $($type: Debug),* {
            #[inline] unsafe fn invoke_primitive<R: Primitive>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, ($($identifier,)*): Self) -> R {
                //autoreleasepool is encouraged by signature but not used
@@ -204,6 +218,7 @@ macro_rules! arguments_impl {
     );
 }
 
+//4 arguments shoudl be enough for everybody
 arguments_impl!();
 arguments_impl!(a: A);
 arguments_impl!(a: A, b: B);

@@ -1,4 +1,4 @@
-///Emits the function we need for a static string expression.
+///Emits the code we need for a static string expression.
 pub fn static_string(string_literal: &str) -> String {
 
     format!(r#"

@@ -1,3 +1,5 @@
+//! Helper functions to emit various link instructions
+
 /// __static_asciz!("LINK_SECTION",IDENT,"ascii")
 /// Should expand to something like
 ///```

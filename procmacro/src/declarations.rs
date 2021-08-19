@@ -1,3 +1,7 @@
+//! Implements declaration parsing for objc headers
+//!
+//! Primarily used in subclassing.
+
 #[derive(Debug)]
 struct Type(String);
 #[derive(Debug)]

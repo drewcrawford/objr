@@ -1,3 +1,6 @@
+//! objr procmacro library
+//! Implements a variety of helper macros for the main crate.
+//!
 mod misc;
 mod selectors;
 mod classes;
@@ -179,7 +182,7 @@ pub fn _objc_class_impl(stream: TokenStream) -> TokenStream {
 }
 
 ///Derive macro for ObjcInstance.
-/// Requires the struct to be of tuple-type and have the pointer at 0-index.
+/// Requires the struct to be of tuple-type and have c_void
 #[proc_macro_derive(ObjcInstance)]
 pub fn derive_objc_instance(stream: TokenStream) -> TokenStream {
     //we're looking for something like `struct Foo`
