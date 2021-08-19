@@ -19,14 +19,13 @@ pub struct ActiveAutoreleasePool {
 }
 
 impl ActiveAutoreleasePool {
-    ///This function creates a fake type that tracks a fake autoreleasepool.
+    ///This function makes the [ActiveAutoreleasePool] marker type guaranteeing we have an autoreleasepool
+    /// active on the thread.
     ///
     /// This is generally unsafe, but if you know an autoreleasepool is active, and can't
     /// get to it for some reason (for example, implementing a fixed trait without the right arguments)
-    /// then you can construct a fake one.
-    ///
-    /// Although this fn is `pub`, it is not public API and is only exposed for macro use.
-    pub unsafe fn __fake() -> ActiveAutoreleasePool {
+    /// then you can construct the marker type here.
+    pub unsafe fn assuming_autoreleasepool() -> ActiveAutoreleasePool {
         ActiveAutoreleasePool {_marker: PhantomData::default() }
     }
 }
