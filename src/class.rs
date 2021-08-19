@@ -5,6 +5,9 @@ use std::ffi::{c_void, CStr};
 use super::performselector::PerformablePointer;
 use super::bindings::*;
 use std::os::raw::c_char;
+use core::marker::PhantomData;
+use std::fmt::Formatter;
+
 
 #[link(name="objc", kind="dylib")]
 extern "C" {
@@ -98,9 +101,8 @@ pub trait ObjcClass: ObjcInstance + Sized {
 ///     }
 ///     impl NSStringTrait for AnyClass{}
 /// }
-/// autoreleasepool(|pool| {
-///     let s: StrongCell<NSObject> = NSObject::class().alloc_init(pool);
-/// })
+/// let pool = AutoreleasePool::new();
+/// let s: StrongCell<NSObject> = NSObject::class().alloc_init(&pool);
 ///
 /// ```
 #[repr(transparent)]
@@ -173,10 +175,6 @@ impl<T: ObjcClass> std::fmt::Display for ClassMarker<T> {
 
 
 
-#[cfg(test)]
-use super::bindings::autoreleasepool;
-use std::marker::PhantomData;
-use std::fmt::Formatter;
 
 ///This declares an instance type which is also a class.  See [objc_instance!] for a version which is not a class.
 /// ```
@@ -231,14 +229,14 @@ fn alloc_ns_object() {
 }
 #[test]
 fn init_ns_object() {
-    autoreleasepool(|pool| {
-        let class =  NSObject::class();
-        let class2 =  NSObject::class();
-        assert_eq!(class, class2);
-        let instance =  class.alloc_init(pool);
-        let description = instance.description(pool);
-        assert!(description.to_str(pool).starts_with("<NSObject"))
-    })
+    use crate::autorelease::AutoreleasePool;
+    let pool = AutoreleasePool::new();
+    let class =  NSObject::class();
+    let class2 =  NSObject::class();
+    assert_eq!(class, class2);
+    let instance =  class.alloc_init(&pool);
+    let description = instance.description(&pool);
+    assert!(description.to_str(&pool).starts_with("<NSObject"))
 }
 
 

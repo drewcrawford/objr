@@ -229,6 +229,7 @@ arguments_impl!(a: A, b: B, c: C, d: D);
 #[test]
 fn perform_super() {
     use objr::bindings::*;
+
     //We need an arbitrary subclass for this test
     objc_class! {
         pub struct NSNull;
@@ -237,16 +238,15 @@ fn perform_super() {
         }
         impl NSNullTrait for AnyClass{}
     }
-    autoreleasepool(|pool| {
-        let o = NSNull::class().alloc_init(pool);
+    let pool = AutoreleasePool::new();
 
-        let args = ();
-        use objr::foundation::*;
-        //perform "super" description
-        let d: *const NSString = unsafe{ <()>::invoke_super(StrongCell::as_ptr(&o) as *const NSNull as *mut NSNull as *mut c_void, Sel::description(), pool, NSNull::class().as_anyclass(), args) };
-        let g: &NSString = unsafe{ &*d};
-        let super_description = g.to_str(pool);
-        assert!(super_description.starts_with("<NSNull:"));
-    });
+    let o = NSNull::class().alloc_init(&pool);
+
+    let args = ();
+    //perform "super" description
+    let d: *const NSString = unsafe{ <()>::invoke_super(StrongCell::as_ptr(&o) as *const NSNull as *mut NSNull as *mut c_void, Sel::description(), &pool, NSNull::class().as_anyclass(), args) };
+    let g: &NSString = unsafe{ &*d};
+    let super_description = g.to_str(&pool);
+    assert!(super_description.starts_with("<NSNull:"));
 
 }

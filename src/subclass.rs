@@ -1,4 +1,3 @@
-///Prelude related to emitting methods.  Only emitted for method-style subclasses
 #[macro_export]
 macro_rules! __objc_sublcass_implpart_method_prelude {
     ($MethodT:ident,$MethodListT:ident) => {
@@ -698,29 +697,23 @@ mod example_dealloc {
 #[test] fn subclass() {
     use objr::bindings::*;
 
-
-    autoreleasepool(|pool| {
-        let _ = example::Example::class().alloc_init(pool);
-
-    })
-
+    let pool = AutoreleasePool::new();
+    let _ = example::Example::class().alloc_init(&pool);
 }
 #[test] fn subclass_dealloc() {
     use objr::bindings::*;
     use std::sync::atomic::Ordering;
-    autoreleasepool(|pool| {
-        assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == false);
-        let _ = example_dealloc::ExampleDealloc::class().alloc_init(pool);
-        //ex dropped here
-    });
+    let pool = AutoreleasePool::new();
+    assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == false);
+    let _ = example_dealloc::ExampleDealloc::class().alloc_init(&pool);
+    //ex dropped here
     assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == true);
 
 }
 
 #[test] fn initialize_payload() {
     use objr::bindings::*;
-    autoreleasepool(|pool| {
-        let ex = example_payload_methods::ExamplePayloadMethods::class().alloc_init(pool);
-        assert!(*ex.payload() == 5);
-    })
+    let pool = AutoreleasePool::new();
+    let ex = example_payload_methods::ExamplePayloadMethods::class().alloc_init(&pool);
+    assert!(*ex.payload() == 5);
 }

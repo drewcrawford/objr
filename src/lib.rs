@@ -33,12 +33,11 @@ objc_class! {
     //Add support for NSDate onto our `AnyClass` APIs.
     impl NSDateTrait for AnyClass {}
 }
-autoreleasepool(|pool| {
-    //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
-    //Forgetting this is a common ObjC bug.
-    let date = NSDate::class().alloc_init(pool);
-    println!("{}",date); // 2021-06-21 19:03:15 +0000
-});
+let pool = AutoreleasePool::new();
+//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
+//Forgetting this is a common ObjC bug.
+let date = NSDate::class().alloc_init(&pool);
+println!("{}",date); // 2021-06-21 19:03:15 +0000
 ```
 
 Compare this with [[objc_instance!]] for non-class instances.
@@ -95,13 +94,11 @@ impl NSDate {
         }
     }
 }
-
-autoreleasepool(|pool| {
-    //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
-    //Forgetting this is a common ObjC bug.
-    let date = NSDate::class().alloc_init(pool);
-    let new_date = date.dateByAddingTimeInterval(pool, 23.5);
-});
+let pool = AutoreleasePool::new();
+//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
+//Forgetting this is a common ObjC bug.
+let date = NSDate::class().alloc_init(&pool);
+let new_date = date.dateByAddingTimeInterval(&pool, 23.5);
 ```
 
 
@@ -172,7 +169,6 @@ pub mod foundation {
     pub use super::nsobject::NSObjectTrait;
     pub use super::nsobject::NSObjectSelectors;
     pub use super::class::ObjcClass;
-    pub use super::autorelease::autoreleasepool;
     pub use super::nserror::{NSError,UnwrapsWithNSError};
     pub use procmacro::objc_nsstring;
 
@@ -180,7 +176,7 @@ pub mod foundation {
 
 ///This namespace includes items that are appropriate for writing bindings
 pub mod bindings {
-    pub use super::autorelease::ActiveAutoreleasePool;
+    pub use super::autorelease::{ActiveAutoreleasePool,AutoreleasePool};
     pub use super::objectpointers::{StrongCell,AutoreleasedCell,SafePointer};
     pub use super::sel::Sel;
     pub use super::nsobject::NSObjectTrait;
