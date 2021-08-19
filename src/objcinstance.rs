@@ -24,18 +24,23 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     }
     ///Assumes the object has been retained and converts to a StrongCell.
     ///
-    /// # Safety:
-    /// If the object is deallocated, this will UB
-    /// If the object is not +1, this will UB
+    /// # Safety
+    /// You must guarantee each of the following:
+    /// * Object was retained (+1)
+    /// * Object is not deallocated
+    /// * Object was initialized
     pub unsafe fn assuming_retained(self) -> StrongCell<T> {
         StrongCell::assuming_retained(self.0.as_ref())
     }
     ///Assumes the object has been autoreleased and converts to an AutoreleasedCell.
     ///
     /// # Safety:
-    /// If the object is not autoreleased already, this will UB
-    pub unsafe fn assuming_autoreleased(self, pool: &ActiveAutoreleasePool) -> AutoreleasedCell<'_, T> {
-        AutoreleasedCell::assuming_autoreleased(self, pool)
+    /// You must guarantee each of the following:
+    /// * Object is autoreleased already
+    /// * Object is not deallocated
+    /// * Object was initialized
+    pub unsafe fn assuming_autoreleased<'a>(self, pool: &'a ActiveAutoreleasePool) -> AutoreleasedCell<'a, T> {
+        AutoreleasedCell::assuming_autoreleased(self.as_ref(), pool)
     }
     ///Converts to a raw pointer
     pub(crate) fn as_ptr(&self) -> *const T {
@@ -44,9 +49,22 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     ///Assumes the passed pointer is non-nil.
     ///
     /// # Safety
-    /// If the passed pointer is nil, this will UB.
+    /// You must guarantee each of the following:
+    /// * Pointer is non-nil
+    /// * Points to a valid objc object of the type specified
     pub(crate) unsafe fn assuming_nonnil(ptr: *const T) -> Self {
         Self(NonNull::new_unchecked(ptr as *mut T))
+    }
+
+    ///Dereferences the inner pointer.
+    ///
+    /// # Safety
+    /// You must guarantee each of the following
+    /// * Object is not deallocated
+    /// * Object will not be deallocated for the lifetime of `self` (e.g., the lifetime of the returned reference)
+    /// * Object was initialized
+    unsafe fn as_ref(&self) -> &T {
+        self.0.as_ref()
     }
 
 }
@@ -65,7 +83,7 @@ pub trait ObjcInstanceBehavior {
     ///Assuming the pointer is non-nil, returns a pointer type
     unsafe fn assuming_nonnil(ptr: *const Self) -> NonNullImmutable<Self>;
 
-    ///Allows you to call [perform] from a nonmutating context.
+    ///Allows you to call [objr::bindings::PerformsSelector::perform] from a nonmutating context.
     ///
     /// This function should not be used for general-purpose pointer casting.
     ///
@@ -90,7 +108,7 @@ impl<T: ObjcInstance> ObjcInstanceBehavior for T {
 /**
 Defines a struct (binding) for a specific ObjC type.  This doesn't assume the type is a class, if it is a class consider [objc_class!].
 
-The type will automagically conform to [ObjcInstance], but will not conform to [ObjcClass].
+The type will automagically conform to [objr::bindings::ObjcInstance], but will not conform to [objr::bindings::ObjcClass].
 
 # Example
 
@@ -130,7 +148,7 @@ In short, this is the type situation for Rust code:
 4.  `example: &mut NSExample` 2, but checked by the borrowchecker. One limitation of this type is it is UB if you make it `nil`, so consider modeling with `Option`.  While this type is appropriate for parameters, it is somewhat unusual for return values as ObjC is reluctant to relate object lifetimes to each other.
 5.  `example: &NSExample` 3, but checked by the borrowchecker.  One limitation of this type is it is UB if you make it `nil`, so consider modeling with `Option`.  hile this type is appropriate for parameters, it is somewhat unusual for return values as ObjC is reluctant to relate object lifetimes to each other.
 
-ARC is its own topic, which in Rust is handled by various smart pointers.  See [objectpointers] for details on the pointer types.
+ARC is its own topic, which in Rust is handled by various smart pointers.  See [objr::bindings::StrongCell] and [objr::bindings::AutoreleasedCell] for details on the pointer types.
 
 Let's stub out a binding for some ObjC type `NSExample`:
 
@@ -205,7 +223,7 @@ Most +0 methods don't return an autorelease object, but return the result of [`_
 This obscure runtime function walks up the stack frame to inspect callers.  Callers that are "dumb" get the +0 object,
 but smart callers can get a +1 object.
 
-To be a smart caller, call a function like [`PerformsSelector::perform_autorelease_to_retain`].  This will promote your +0 pointer to +1,
+To be a smart caller, call a function like [`objr::bindings::PerformsSelector::perform_autorelease_to_retain`].  This will promote your +0 pointer to +1,
 which can then be passed to [StrongCell](objr::bindings::StrongCell).
 
 ## Nullability

@@ -58,7 +58,7 @@ impl<T: ObjcClass> PartialEq for Class<T> {
 }
 
 impl<T: ObjcClass> Class<T> {
-    ///Dynamically creates a Class from some string by querying the ObjC runtime.  Note that in most cases, [Class::new] in combination
+    ///Dynamically creates a Class from some string by querying the ObjC runtime.  Note that in most cases, [NSObject::class()] in combination
     /// with [objc_class!] macro is a faster implementation because it uses compile-time knowledge.
     pub unsafe fn from_str(cstr: &CStr) -> &'static Self {
         let dynamic_class = objc_lookUpClass(cstr.as_ptr());

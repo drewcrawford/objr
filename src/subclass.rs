@@ -541,7 +541,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 ///
 /// 2.  Even if this worked, in practice ObjC types are usually donated to the runtime
 ///     either explicitly or implicitly.  The extent of this is not necessarily documented
-///     by ObjC people.  For example, in https://lapcatsoftware.com/articles/working-without-a-nib-part-12.html
+///     by ObjC people.  For example, in `https://lapcatsoftware.com/articles/working-without-a-nib-part-12.html`
 ///     it's discussed that `NSWindow` effectively had its lifetime extended in an SDK
 ///     release, with little in the way of documentation (in fact, I can only find discussion
 ///     of it there).  In practice, this "just happens" in ObjC.
@@ -566,7 +566,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 ///
 /// In theory, [std::mem::MaybeUninit] would solve this – assuming you remember to wrap all your values (or the payload itself).
 /// In practice however, [std::mem::MaybeUnint.assume_init()] requires moving the value outside the payload,
-/// which cannot really be done in this case.  See https://github.com/rust-lang/rust/issues/63568 for details.
+/// which cannot really be done in this case.  See `https://github.com/rust-lang/rust/issues/63568` for details.
 ///
 /// The alternative is to write into your payload_mut with [std::ptr::write], which does not drop the uninitialized value.
 ///

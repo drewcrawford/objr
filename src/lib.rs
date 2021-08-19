@@ -30,11 +30,11 @@ objc_class! {
         //ObjC class name
         @class(NSDate)
     }
-    //Add support for NSDate onto our `AnyClass` APIs.
+    //Add support for `new()` onto `Class::<NSDate>::new()`
     impl NSDateTrait for Class {}
 }
 let pool = AutoreleasePool::new();
-//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
+//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing static guarantees you created one.
 //Forgetting this is a common ObjC bug.
 let date = NSDate::class().alloc_init(&pool);
 println!("{}",date); // 2021-06-21 19:03:15 +0000
@@ -71,6 +71,7 @@ impl NSDate {
     //Although the underlying ObjC API returns a +0 unowned reference,
     //We create a binding that returns +1 retained instead.  We might do this
     //because it's the preferred pattern of our application.
+    //For more details, see the documentation of [objc_instance!]
     -> StrongCell<NSDate> {
         //Use of ObjC is unsafe.  There is no runtime or dynamic checking of your work here,
         //so you must provide a safe abstraction to callers (or mark the enclosing function unsafe).
@@ -85,7 +86,7 @@ impl NSDate {
                 Sel::dateByAddingTimeInterval_(),
                 ///Static checking that we have an autoreleasepool available
                  pool,
-                 ///Arguments.  Note the trailing `,`
+                 ///Arguments.  Note the trailing `,`.  Arguments are tuple types.
                  (interval,));
             //assume the result is nonnil
             Self::assuming_nonnil(raw)
@@ -101,44 +102,33 @@ let date = NSDate::class().alloc_init(&pool);
 let new_date = date.dateByAddingTimeInterval(&pool, 23.5);
 ```
 
+For more examples, see the documentation for [objc_instance!].
 
 # Feature index
 
 * Statically declare [selectors](objc_selector_group!()) and [classes](objc_class!()), [string literals](foundation::objc_nsstring!()), [enums](bindings::objc_enum!()), etc. so they don't have to be looked up at runtime
-    * "Groups" that help manage (unmangled) static symbols across crates and compilation units
 * Leverage the Rust typesystem to elide `retain`/`release`/`autorelease` calls in many cases.
-* Participate in [runtime autorelease eliding](objr::performselector::PerformsSelector::perform_autorelease_to_strong_nonnull()) which reduces memory overhead when calling system code
+* Participate in [runtime autorelease eliding](objr::performselector::PerformsSelector::perform_autorelease_to_retain()) which reduces memory overhead when calling system code
 This means that for programs that are mostly Rust, codegeneration may be significantly better even than real ObjC programs.
-* Pointer packing for `Option<NSObject>`
-* Smart pointer system, with support for [bindings::StrongCell], [bindings::AutoreleasedCell] and [bindings::UnwrappedCell] (a pointer comparable to Swift's IUO)
+* Pointer packing for `Option<&NSObject>`
+* Smart pointer system, with support for [bindings::StrongCell] and [bindings::AutoreleasedCell]
 * [Subclassing directly from Rust](objc_subclass!())
-* (limited) support for [objc_instance!()#Mutability](mutability and exclusive references) in imported types
+* (limited) support for [mutability and exclusive references](objc_instance!()#Mutability) in imported types
 
 Not yet implemented, but planned or possible:
 
 * iOS support
-* Exceptions (Debug-quality API available already, see [[bindings::try_unwrap_void]])
+* Exceptions (Debug-quality API available now, see [[bindings::try_unwrap_void]])
 
 # Design limitations
 
-This library **takes ObjC seriously**.  ObjC has many patterns that are difficult or unsafe to express in Rust.  As a consequence,
-many APIs have been marked `unsafe` and require knowledge of both unsafe Rust and ObjC convention to use in a safe way.
+This library intends to follow normal guidelines for safe Rust.  However, calling into ObjC means there's
+a giant ball of `unsafe` somewhere.
 
-A complete treatment of these topics is beyond the scope of any document, but some things to be aware of include:
+This library makes the assumption that the underlying ball of ObjC is implemented correctly.  In particular,
+it avoids runtime checks that ObjC is implemented correctly, so to the extent that it isn't, you may encounter UB.
 
-1.  ObjC memory management patterns are "by convention", e.g. related to the name of an API or its historical use as known among ObjC programmers.
-    Sound use of ObjC APIs requires you to correctly anticipate these conventions.
-2.  It also requires ObjC APIs to be implemented correctly.  As ObjC is an unsafe language this may be of concern to Rust developers.
-3.  ObjC exceptions are *generally* not to be handled, by analogy to Rust panics.  Also like Rust panics, they may frequently occur
-    during development.  However *unlike* panics, ObjC exceptions are UB if they unwind into other languages so they may not reliably crash.
-    Therefore, you must ensure they do not accomplish it, an admittedly difficult task.  It can be achieved with [bindings::try_unwrap_void], but this has some
-    performance overhead that may be unacceptable for method calls, so whether or not to wrap your API that way is up to you.
-
-    In not handling this, I followed Swift's design on this point, which faces a similar issue.  Presumably, they are more familiar
-    with the tradeoffs than I am.
-
-    However, Rust is substantially more likely to swallow debugging information when it encounters UB, so you may want to weigh your options,
-    or at least be prepared to insert `try_unwrap` for debugging purposes.
+For more information, see the safety section of [objc_instance!()#Safety].
 */
 extern crate self as objr;
 pub mod macros;
@@ -162,6 +152,9 @@ mod exception;
 
 ///This prelude provides a "foundation-like" experience.  This brings
 /// in various foundation types, like NSObject, NSString, etc.
+///
+/// In this crate we generally only implement types that are strictly necessary,
+/// for other foundation types see other crates.
 pub mod foundation {
     pub use super::nsstring::NSString;
     pub use super::nsobject::NSObject;
@@ -203,18 +196,6 @@ pub mod bindings {
     //used by macros
     #[doc(hidden)]
     pub use procmacro::{_objc_selector_decl,_objc_selector_impl,_objc_class_decl,_objc_class_impl};
-}
-
-///Exports all the ObjC symbols we declare to be a good `group_name` citizen
-pub mod symbols {
-    //named slightly differently since we have a public API called `NSObjectTrait`
-    //todo
-    pub use super::nsobject::NSObjectTrait;
-    pub use super::nsobject::NSObjectSelectors;
-
-    pub use super::nsstring::NSStringTrait;
-    pub use super::nsstring::NSStringSelectors;
-    pub use super::nserror::NSErrorTrait;
 }
 
 mod private {

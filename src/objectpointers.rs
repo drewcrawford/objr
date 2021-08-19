@@ -44,7 +44,7 @@ pub struct AutoreleasedCell<'a, T> {
 
 impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
 
-    ///Converts to [Self] by autoreleasing the [SafePointer<T>].
+    ///Converts to [Self] by autoreleasing the reference.
     pub fn autoreleasing(cell: &T, _pool: &'a ActiveAutoreleasePool) -> Self {
         unsafe {
             objc_autorelease(cell as *const _ as *const c_void)
@@ -56,12 +56,12 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
     }
 }
 impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
-    ///Converts to [Self] by assuming the [UnwrappedCell] is already autoreleased.
+    ///Converts to [Self] by assuming the pointer is already autoreleased.
     ///
     /// This is the case for many objc methods, depending on convention.
-    pub unsafe fn assuming_autoreleased(ptr: NonNullImmutable<T>, _pool: &'a ActiveAutoreleasePool) -> Self {
+    pub unsafe fn assuming_autoreleased(ptr: &T, _pool: &'a ActiveAutoreleasePool) -> Self {
         AutoreleasedCell {
-            ptr,
+            ptr: NonNullImmutable::from_reference(ptr),
             marker: PhantomData::default()
         }
     }
@@ -87,7 +87,7 @@ A strong pointer to an objc object.
 This is often the type you want as the return
 type when implementing an ObjC binding.
 
-When this type is created, we will `retain` (unless using an unsafe [assuming_retained()] constructor)
+When this type is created, we will `retain` (unless using an unsafe [StrongCell::assuming_retained()] constructor)
 When the obj is dropped, we will `release`.
 
 In ObjC, the compiler tries to elide retain/release but it
