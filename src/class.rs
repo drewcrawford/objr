@@ -22,6 +22,7 @@ pub struct AnyClass(c_void);
 ///
 /// In particular, this rules out the possibility it is a protocol.
 ///
+/// # Stability
 /// It is not stable API to impelment this trait directly.  Instead use the [objc_class!] macro.
 pub trait ObjcClass: ObjcInstance + Sized {
     fn class() -> &'static Class<Self>;
@@ -146,10 +147,7 @@ macro_rules! objc_class  {
         impl $traitname for ::objr::bindings::Class<$objctype> {
                 ::objr::bindings::_objc_class_impl!{$objcname,$objctype}
         }
-
-
         ::objr::bindings::__objc_implement_class!{$objctype,$objcname}
-
     };
 }
 

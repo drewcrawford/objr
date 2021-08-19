@@ -9,9 +9,6 @@ use super::objcinstance::ObjcInstance;
 use super::performselector::PerformsSelector;
 use super::bindings::*;
 
-struct Foo(*const [u8; 12]);
-unsafe impl Send for Foo {}
-unsafe impl Sync for Foo {}
 
 //If you fail to Link CoreFoundation, description cannot be found
 #[link(name="CoreFoundation",kind="framework")]
@@ -40,7 +37,6 @@ pub trait NSObjectTrait {
 
     ///Calls `[instance init]`.;
     unsafe fn init(receiver: *mut *mut Self, pool: &ActiveAutoreleasePool);
-    unsafe fn conforms_to_protocol(&self, pool: &ActiveAutoreleasePool, protocol: *const std::ffi::c_void) -> bool;
 }
 //"description" will not work unless CoreFoundation is linked
 impl<T: ObjcInstance> NSObjectTrait for T {
@@ -54,10 +50,6 @@ impl<T: ObjcInstance> NSObjectTrait for T {
         unsafe {
             Self::perform_primitive(self.assuming_nonmut_perform(), Sel::respondsToSelector_(), pool, (sel,))
         }
-    }
-    //todo: get a real protocol signature
-    unsafe fn conforms_to_protocol(&self, pool: &ActiveAutoreleasePool, protocol: *const core::ffi::c_void) -> bool {
-        Self::perform_primitive(self.assuming_nonmut_perform(), Sel::conformsToProtocol_(), pool, (protocol,))
     }
     ///Initializes the object by calling `[self init]`
     ///

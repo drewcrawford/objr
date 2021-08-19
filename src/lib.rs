@@ -169,7 +169,7 @@ pub mod foundation {
     pub use super::nsobject::NSObjectTrait;
     pub use super::nsobject::NSObjectSelectors;
     pub use super::class::ObjcClass;
-    pub use super::nserror::{NSError,UnwrapsWithNSError};
+    pub use super::nserror::{NSError};
     pub use procmacro::objc_nsstring;
 
 }
@@ -177,7 +177,7 @@ pub mod foundation {
 ///This namespace includes items that are appropriate for writing bindings
 pub mod bindings {
     pub use super::autorelease::{ActiveAutoreleasePool,AutoreleasePool};
-    pub use super::objectpointers::{StrongCell,AutoreleasedCell,SafePointer};
+    pub use super::objectpointers::{StrongCell,AutoreleasedCell};
     pub use super::sel::Sel;
     pub use super::nsobject::NSObjectTrait;
     pub use super::nsobject::NSObject;

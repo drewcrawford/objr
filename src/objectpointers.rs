@@ -1,17 +1,11 @@
 /*! object pointer types
 
-A word on type design here.
-First we have the objc dimension.  That is, NSObject, NSString, etc.  These
-types are generally implemented as opaque types.
-
-Then we have the "cells".  These are smart, typed pointers implemented as newtypes.
-
 For safe types:
 
 1.  AutoreleasedCell - part of an autorelease pool
 2.  StrongCell - Compiler emits retain/release calls.
 
-Mutable variants:
+Mutable variants (not yet implemented todo):
 
 1.  AutoreleasedMutableCell - like [AutoreleasedCell] but mutable
 2.  StrongMutableCell - like [StrongCell] but mutable
@@ -24,6 +18,7 @@ use crate::bindings::{ActiveAutoreleasePool,ObjcInstance};
 use std::marker::PhantomData;
 use crate::objcinstance::NonNullImmutable;
 
+///Turning this on may help debug retain/release
 const DEBUG_MEMORY: bool = false;
 
 
@@ -32,24 +27,6 @@ extern "C" {
     fn objc_retain(ptr: *const  c_void) -> *const c_void;
     fn objc_release(ptr: *const c_void);
     fn objc_autorelease(ptr: *const c_void);
-}
-///A trait that guarantees an ObjC object is valid.
-///
-/// This allows various 'safe versions' of methods to exist that are checked by the compiler.
-pub trait SafePointer {
-    type T: ObjcInstance;
-    fn as_ptr(ptr: &Self) -> &Self::T;
-}
-
-trait SafePointerBehavior: SafePointer {
-    fn as_nonnull(ptr: &Self) -> NonNullImmutable<Self::T>;
-}
-impl<T: SafePointer> SafePointerBehavior for T {
-    fn as_nonnull(ptr: &Self) -> NonNullImmutable<Self::T> {
-        //should be safe because we are a safe pointer
-        unsafe{ NonNullImmutable::assuming_nonnil(Self::as_ptr(ptr) as *const Self::T) }
-
-    }
 }
 
 
@@ -67,18 +44,14 @@ pub struct AutoreleasedCell<'a, T> {
 
 impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
 
-    ///Converts to [Self] by autoreleasing the [UnwrappedCell].
-    ///
-    /// Unsafe due to the fact that [UnwrappedCell] may not be valid.
-    unsafe fn _autoreleasing(ptr: NonNullImmutable<T>, pool: &'a ActiveAutoreleasePool) -> Self {
-        objc_autorelease(ptr.as_ptr() as *mut c_void);
-        Self::assuming_autoreleased(ptr, pool)
-    }
-
     ///Converts to [Self] by autoreleasing the [SafePointer<T>].
-    pub fn autoreleasing<SafeCell: SafePointer<T=T>>(cell: &SafeCell, pool: &'a ActiveAutoreleasePool) -> Self {
+    pub fn autoreleasing(cell: &T, _pool: &'a ActiveAutoreleasePool) -> Self {
         unsafe {
-            Self::_autoreleasing(SafeCell::as_nonnull(cell),pool)
+            objc_autorelease(cell as *const _ as *const c_void)
+        }
+        Self{
+            ptr: NonNullImmutable::from_reference(cell),
+            marker: Default::default()
         }
     }
 }
@@ -91,15 +64,6 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
             ptr,
             marker: PhantomData::default()
         }
-    }
-}
-impl<'a, T> super::private::Sealed for AutoreleasedCell<'a, T> { }
-//is a safe type
-impl<'a, T: ObjcInstance> SafePointer for AutoreleasedCell<'a, T> {
-    type T = T;
-    fn as_ptr(ptr: &Self) -> &T {
-        //should be safe because this type is a safe cell
-        unsafe{ &*ptr.ptr.as_ptr()}
     }
 }
 
@@ -120,7 +84,10 @@ impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedCell<'a, T> where *c
 /**
 A strong pointer to an objc object.
 
-When this type is created, we will `retain` (unless we assume +1 due to objc convention.)
+This is often the type you want as the return
+type when implementing an ObjC binding.
+
+When this type is created, we will `retain` (unless using an unsafe [assuming_retained()] constructor)
 When the obj is dropped, we will `release`.
 
 In ObjC, the compiler tries to elide retain/release but it
@@ -142,12 +109,13 @@ This is often used at the border of an objc binding.
 For an elided 'best case' version, see `RefCell`.
 */
 #[derive(Debug)]
-pub struct StrongCell<T: ObjcInstance>(*const T);
+pub struct StrongCell<T: ObjcInstance>(NonNullImmutable<T>);
 impl<T: ObjcInstance> StrongCell<T> {
-    pub unsafe fn retaining<SafeCell: SafePointer<T=T>>(cell: &SafeCell) -> Self {
-        objc_retain(SafeCell::as_ptr(cell) as *const _ as *const c_void);
-        //safe because `cell` is owned here
-        Self::assuming_retained(SafeCell::as_nonnull(cell))
+    pub fn retaining(cell: &T) -> Self {
+        unsafe {
+            objc_retain(cell as *const T as *const c_void);
+            Self::assuming_retained(cell)
+        }
     }
 
     ///Converts to [AutoreleasedCell] by calling `autorelease` on `self`.
@@ -164,40 +132,33 @@ impl<T: ObjcInstance> StrongCell<T> {
     ///Converts to [Self] by assuming the argument is already retained.
     ///
     /// This is usually the case for some objc methods with names like `new`, `copy`, `init`, etc.
-    pub unsafe fn assuming_retained(retained: NonNullImmutable<T>) -> Self {
-        StrongCell(retained.as_ptr())
+    /// # Safety
+    /// If this isn't actually retained, will UB
+    pub unsafe fn assuming_retained(reference: &T) -> Self {
+        StrongCell(NonNullImmutable::from_reference(reference))
     }
 }
 
-
-//is safe pointer
-impl<T: ObjcInstance> super::private::Sealed for StrongCell<T> { }
-impl<T: ObjcInstance> SafePointer for StrongCell<T> {
-    type T = T;
-    fn as_ptr(ptr: &Self) -> &T {
-        unsafe{ &*ptr.0}
-    }
-}
 impl<T: ObjcInstance> Drop for StrongCell<T> {
     fn drop(&mut self) {
         unsafe {
             if DEBUG_MEMORY {
                 println!("Drop {} {:p}",std::any::type_name::<T>(), self);
             }
-            objc_release(Self::as_ptr(self) as *const _ as *const c_void);
+            objc_release(self.0.as_ptr() as *const _ as *const c_void);
         }
     }
 }
 impl<T: ObjcInstance> std::ops::Deref for StrongCell<T> {
     type Target = T;
     #[inline] fn deref(&self) -> &T {
-        unsafe{ &*self.0}
+        unsafe{ &*self.0.as_ptr()}
     }
 }
 
 impl<'a, T: ObjcInstance> std::fmt::Display for StrongCell<T> where T: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let ptr = unsafe{ &*(self.0)};
+        let ptr = unsafe{ &*(self.0.as_ptr())};
         f.write_fmt(format_args!("{}",ptr))
     }
 }
