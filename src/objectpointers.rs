@@ -23,7 +23,6 @@ use core::ffi::{c_void};
 use crate::bindings::{ActiveAutoreleasePool,ObjcInstance};
 use std::marker::PhantomData;
 use crate::objcinstance::NonNullImmutable;
-use std::fmt::Formatter;
 
 const DEBUG_MEMORY: bool = false;
 

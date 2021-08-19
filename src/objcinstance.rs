@@ -37,15 +37,7 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     pub(crate) unsafe fn assuming_nonnil(ptr: *const T) -> Self {
         Self(NonNull::new_unchecked(ptr as *mut T))
     }
-    pub(crate) fn as_option(ptr: *const T) -> Option<Self> {
-        if ptr.is_null() {
-            None
-        }
-        else {
-            //we literally just checked
-            Some(unsafe{ Self::assuming_nonnil(ptr)})
-        }
-    }
+
 }
 
 ///Behavior we define for any `ObjcInstace`

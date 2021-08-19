@@ -153,12 +153,30 @@ impl<T: ObjcClass> ClassMarker<T> {
     pub unsafe fn alloc(&self, pool: &ActiveAutoreleasePool) -> *mut T {
         Self::perform(self as *const ClassMarker<T> as *mut _, Sel::alloc(), pool, ()) as *const T as *mut T
     }
+
+    ///See [ObjcInstanceBehavior::assuming_nonmut_perform()]
+    unsafe fn assuming_nonmut_perform(&self) -> *mut Self {
+        self as *const Self as *mut Self
+    }
 }
+
+impl<T: ObjcClass> std::fmt::Display for ClassMarker<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let r = unsafe {
+            let pool = ActiveAutoreleasePool::assuming_autoreleasepool() ;
+            let description: *const NSString = Self::perform_autorelease_to_retain(self.assuming_nonmut_perform(), Sel::description(), &pool,());
+            NSString::assuming_nonnil(description).assuming_retained()
+        };
+        f.write_fmt(format_args!("{}",r))
+    }
+}
+
 
 
 #[cfg(test)]
 use super::bindings::autoreleasepool;
 use std::marker::PhantomData;
+use std::fmt::Formatter;
 
 ///This declares an instance type which is also a class.  See [objc_instance!] for a version which is not a class.
 /// ```
@@ -209,6 +227,7 @@ macro_rules! objc_class  {
 fn alloc_ns_object() {
     use std::ffi::CString;
     let class = unsafe { ClassMarker::<NSObject>::from_str(CString::new("NSObject").unwrap().as_c_str() ) };
+    println!("{}",class);
 }
 #[test]
 fn init_ns_object() {

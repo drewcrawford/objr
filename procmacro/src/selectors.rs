@@ -3,7 +3,6 @@ extern crate proc_macro;
 
 ///An expression for a `Sel` with a dyld-time static
 pub fn sel_expression(selector: &str) -> String {
-    let symbol_name = selector.replace(":","_");
     format!(
         r#"
     {{

@@ -258,7 +258,6 @@ macro_rules! __objc_subclass_impl_payload_access {
             /// Just going to implement a mut getter and label it unsafe
             #[allow(dead_code)]
             $pub unsafe fn payload_mut(&self) -> &mut $payload {
-                use objr::bindings::PerformablePointer;
                 //convert to u8 to get byte offset
                 let self_addr = (self as *const _ as *const u8);
                 //offset by FRAGILE_BASE_CLASS
@@ -298,7 +297,7 @@ macro_rules! __objc_subclass_implpart_finalize {
             });
         );
 
-        use objr::bindings::{ClassMarker,AnyClass,objc_instance};
+        use objr::bindings::{ClassMarker,objc_instance};
 
         //declare our wrapper type
         //The declared type will be FFI-safe to an objc pointer, see documentation
