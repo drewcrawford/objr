@@ -311,7 +311,7 @@ macro_rules! __objc_subclass_implpart_finalize {
         //We avoid using `objc_class!` macro here since it imports an external ObjC class.
         //As we are exporting a class, we provide our own conformance.
         //Should be safe because we're declaring the type
-        unsafe impl objr::bindings::ObjcClass for $identifier {
+        impl objr::bindings::ObjcClass for $identifier {
             #[inline] fn class() -> &'static ::objr::bindings::Class<Self> {
                 unsafe{ &*(&CLASS.0 as *const _ as *const ::objr::bindings::Class<Self>) }
             }

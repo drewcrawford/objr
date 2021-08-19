@@ -195,7 +195,7 @@ pub mod bindings {
 
     //used by macros
     #[doc(hidden)]
-    pub use procmacro::{_objc_selector_decl,_objc_selector_impl,_objc_class_decl,_objc_class_impl};
+    pub use procmacro::{_objc_selector_decl,_objc_selector_impl,_objc_class_decl,_objc_class_impl,__use,__mod};
 }
 
 mod private {

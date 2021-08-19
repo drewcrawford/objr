@@ -35,7 +35,7 @@ pub fn implement_class_type(class_name: &str,rust_name:&str) -> String {
 
 pub fn implement_class(rust_name: &str) -> String {
     format!(r#"
-        unsafe impl ::objr::bindings::ObjcClass for {RUST_NAME} {{
+        impl ::objr::bindings::ObjcClass for {RUST_NAME} {{
             fn class() -> &'static ::objr::bindings::Class<{RUST_NAME}> {{
                 ::objr::bindings::Class::<Self>::new()
             }}

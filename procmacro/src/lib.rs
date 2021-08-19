@@ -58,7 +58,8 @@ pub fn _objc_selector_decl(stream: TokenStream) -> TokenStream {
 /// # extern crate self as objr;
 /// # fn main() { }
 /// # mod bindings {
-/// #    pub struct Sel{ pub ptr: *const std::ffi::c_void }
+/// #    pub struct Sel{ pub ptr: *const std::ffi::c_void }///
+/// #    impl Sel { pub unsafe fn from_ptr(ptr: *const std::ffi::c_void) -> Sel {todo!()}}
 /// # }
 /// #
 /// trait ExampleT{ unsafe fn selector() -> ::objr::bindings::Sel; }
@@ -720,6 +721,103 @@ pub fn __concat_idents(stream: TokenStream) -> TokenStream {
         Err(e) => { return error(&format!("Expected second ident part, {}",e))}
     };
     return format!("{ITEM1}{ITEM2}",ITEM1=item1,ITEM2=item2).parse().unwrap()
+}
+
+///Concatenates two modules into a module declaraton.
+///
+/// ```
+/// use procmacro::__mod;
+/// __mod!(id1,id2,{
+///     const example: u8 = 0;
+/// });
+/// ```
+#[doc(hidden)]
+#[proc_macro]
+pub fn __mod(stream: TokenStream) -> TokenStream {
+    let mut iter = stream.into_iter();
+    let item1 = match parse_ident(&mut iter) {
+        Ok(l) => {l}
+        o => { return error(&format!("Expected first ident part, {:?}",o))}
+    };
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+
+    let item2 = match parse_ident(&mut iter) {
+        Ok(i) => i,
+        Err(e) => { return error(&format!("Expected second ident part, {}",e))}
+    };
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+    let group = match iter.next() {
+        Some(TokenTree::Group(g)) => {
+            g.to_string()
+        },
+        o => { return error(&format!("Expected block, got {:?}",o))}
+    };
+    let s = format!("mod {ID1}{ID2} {BLOCK}",ID1=item1, ID2=item2,BLOCK=group);
+    // return error(&s);
+    s.parse().unwrap()
+}
+
+///Concatenates two ids into a use declaration
+/// ```
+/// mod AB {
+///     pub const C:u8 = 0;
+/// }
+/// use procmacro::__use;
+/// __use!(A,B,C);
+/// mod DE {
+///     pub const F:u8 = 0;
+/// }
+/// __use!(pub D,E,F);
+/// ```
+#[doc(hidden)]
+#[proc_macro]
+pub fn __use(stream: TokenStream) -> TokenStream {
+    let mut iter = stream.into_iter();
+    let mut item1 = match parse_ident(&mut iter) {
+        Ok(l) => {l}
+        o => { return error(&format!("Expected first ident part, {:?}",o))}
+    };
+    let is_pub;
+    if item1.to_string() == "pub" {
+        is_pub = true;
+        //parse again
+        item1 = match parse_ident(&mut iter) {
+            Ok(l) => {l}
+            o => { return error(&format!("Expected first ident part, {:?}",o))}
+        };
+    }
+    else {
+        is_pub = false;
+    }
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+
+    let item2 = match parse_ident(&mut iter) {
+        Ok(i) => i,
+        Err(e) => { return error(&format!("Expected second ident part, {}",e))}
+    };
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+
+    let item3 = match parse_ident(&mut iter) {
+        Ok(i) => i,
+        Err(e) => { return error(&format!("Expected second ident part, {}",e))}
+    };
+    match iter.next() {
+        None => {}
+        other => { return error(&format!("Expected end of macro invocation, got {:?}",other));}
+    }
+    format!("{PUB} use {ID1}{ID2}::{ID3};", PUB=if is_pub { "pub"} else {""}, ID1=item1, ID2=item2, ID3=item3).parse().unwrap()
 }
 
 ///Parses a literal like `"-(void) foo:(int) bar"` into a literal `"foo:"`

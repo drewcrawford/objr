@@ -9,7 +9,7 @@ use crate::autorelease::ActiveAutoreleasePool;
 /// It is not stable API to implement this trait yourself.  Instead, declare a conforming
 /// type via [objc_instance!] macro.
 ///
-pub unsafe trait ObjcInstance {}
+pub trait ObjcInstance {}
 
 
 ///A nonnull, but immutable type.  This allows various optimizations like pointer-packing `Option<T>`.
@@ -297,15 +297,16 @@ macro_rules! objc_instance  {
         //Idea here is we don't allow the type to be constructed where it is declared.
         //Doing so would allow stack allocation.
         //By nesting inside a separate module, the inner field is private.
-        mod no_construct {
+        ::objr::bindings::__mod!(no_construct,$objctype, {
             $(#[$attribute])*
             #[repr(transparent)]
             #[derive(::objr::bindings::ObjcInstance,Debug)]
             pub struct $objctype(core::ffi::c_void);
-        }
-        $pub use no_construct::$objctype;
+        });
+        ::objr::bindings::__use!($pub no_construct,$objctype,$objctype);
     };
 }
+
 
 ///Defines some behavior on `Option<&ObjcInstance>`
 pub trait OptionalInstanceBehavior<Deref> {

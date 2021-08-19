@@ -29,8 +29,8 @@ pub struct AnyClass(c_void);
 /// It is not stable API to impelment this trait directly.  Instead use the [objc_class!] macro.
 ///
 /// # Safety
-/// This is unsafe because there's no way to check it's actually a class, and if it isn't there's UB involved
-pub unsafe trait ObjcClass: ObjcInstance + Sized {
+/// This is safe because the linker checks that this is a valid class
+pub trait ObjcClass: ObjcInstance + Sized {
     fn class() -> &'static Class<Self>;
 }
 
@@ -92,7 +92,7 @@ impl<T: ObjcClass> Class<T> {
     }
 
     ///See [ObjcInstanceBehavior::assume_nonmut_perform()]
-    unsafe fn assume_nonmut_perform(&self) -> *mut Self {
+    pub unsafe fn assume_nonmut_perform(&self) -> *mut Self {
         self as *const Self as *mut Self
     }
 }
