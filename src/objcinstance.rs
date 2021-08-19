@@ -20,7 +20,7 @@ pub struct NonNullImmutable<T: ?Sized>(NonNull<T>);
 
 impl<T: ObjcInstance> NonNullImmutable<T> {
     pub(crate)  fn from_reference(ptr: &T) -> Self {
-        unsafe{ NonNullImmutable::assuming_nonnil(ptr) }
+        unsafe{ NonNullImmutable::assume_nonnil(ptr) }
     }
     ///Assumes the object has been retained and converts to a StrongCell.
     ///
@@ -29,8 +29,8 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     /// * Object was retained (+1)
     /// * Object is not deallocated
     /// * Object was initialized
-    pub unsafe fn assuming_retained(self) -> StrongCell<T> {
-        StrongCell::assuming_retained(self.0.as_ref())
+    pub unsafe fn assume_retained(self) -> StrongCell<T> {
+        StrongCell::assume_retained(self.0.as_ref())
     }
     ///Assumes the object has been autoreleased and converts to an AutoreleasedCell.
     ///
@@ -39,8 +39,8 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     /// * Object is autoreleased already
     /// * Object is not deallocated
     /// * Object was initialized
-    pub unsafe fn assuming_autoreleased<'a>(self, pool: &'a ActiveAutoreleasePool) -> AutoreleasedCell<'a, T> {
-        AutoreleasedCell::assuming_autoreleased(self.as_ref(), pool)
+    pub unsafe fn assume_autoreleased<'a>(self, pool: &'a ActiveAutoreleasePool) -> AutoreleasedCell<'a, T> {
+        AutoreleasedCell::assume_autoreleased(self.as_ref(), pool)
     }
     ///Converts to a raw pointer
     pub(crate) fn as_ptr(&self) -> *const T {
@@ -52,7 +52,7 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     /// You must guarantee each of the following:
     /// * Pointer is non-nil
     /// * Points to a valid objc object of the type specified
-    pub(crate) unsafe fn assuming_nonnil(ptr: *const T) -> Self {
+    pub(crate) unsafe fn assume_nonnil(ptr: *const T) -> Self {
         Self(NonNull::new_unchecked(ptr as *mut T))
     }
 
@@ -81,7 +81,7 @@ pub trait ObjcInstanceBehavior {
     unsafe fn cast<R : ObjcInstance>(underlying: *const Self) -> *const R;
 
     ///Assuming the pointer is non-nil, returns a pointer type
-    unsafe fn assuming_nonnil(ptr: *const Self) -> NonNullImmutable<Self>;
+    unsafe fn assume_nonnil(ptr: *const Self) -> NonNullImmutable<Self>;
 
     ///Allows you to call [objr::bindings::PerformsSelector::perform] from a nonmutating context.
     ///
@@ -89,17 +89,17 @@ pub trait ObjcInstanceBehavior {
     ///
     /// # Safety
     /// This is only safe when the underlying objc method does not mutate its contents.  See [objc_instance#Mutability] for details.
-    unsafe fn assuming_nonmut_perform(&self) -> *mut Self;
+    unsafe fn assume_nonmut_perform(&self) -> *mut Self;
 }
 
 impl<T: ObjcInstance> ObjcInstanceBehavior for T {
     unsafe fn cast<R: ObjcInstance>(underlying: *const Self) -> *const R {
         underlying as *const _ as *const R
     }
-    unsafe fn assuming_nonnil(ptr: *const Self) -> NonNullImmutable<Self> {
+    unsafe fn assume_nonnil(ptr: *const Self) -> NonNullImmutable<Self> {
         NonNullImmutable(NonNull::new_unchecked(ptr as *mut Self))
     }
-    unsafe fn assuming_nonmut_perform(&self) -> *mut Self {
+    unsafe fn assume_nonmut_perform(&self) -> *mut Self {
         self as *const Self as *mut Self
     }
 

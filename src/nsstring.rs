@@ -32,7 +32,7 @@ impl NSString {
 	///Converts to a stringslice
 	pub fn to_str(&self, pool: &ActiveAutoreleasePool) -> &str {
 		unsafe {
-			let str_pointer: *const c_char = Self::perform_primitive(self.assuming_nonmut_perform(), Sel::UTF8String(), pool, ());
+			let str_pointer: *const c_char = Self::perform_primitive(self.assume_nonmut_perform(), Sel::UTF8String(), pool, ());
 			let msg = CStr::from_ptr(str_pointer);
 			msg.to_str().unwrap()
 		}
@@ -47,7 +47,7 @@ impl NSString {
 			let instance: *const NSString = Self::perform(instance,Sel::initWithBytes_length_encoding(),pool, (bytes,len,NSUTF8StringEncoding));
 			//although this method is technically nullable, the fact that the string is already statically known to be utf8
 			//suggests we should be fine
-			NonNullImmutable::assuming_nonnil(instance).assuming_retained()
+			NonNullImmutable::assume_nonnil(instance).assume_retained()
 		}
 	}
 }

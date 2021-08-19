@@ -523,7 +523,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 /// }
 ///
 ///     extern "C" fn init(objcSelf: *mut Example, sel: Sel) -> *const Example {
-///         let new_self: &Example = unsafe{ &*(Example::perform_super(objcSelf,  Sel::init(), &ActiveAutoreleasePool::assuming_autoreleasepool(), ()))};
+///         let new_self: &Example = unsafe{ &*(Example::perform_super(objcSelf,  Sel::init(), &ActiveAutoreleasePool::assume_autoreleasepool(), ()))};
 ///         //initialize the payload to 5
 ///         *(unsafe{new_self.payload_mut()}) = 5;
 ///         //return self per objc convention
@@ -637,7 +637,7 @@ mod example {
 
     extern "C" fn sample(objc_self: &Example, _sel: Sel) -> *const Example {
         println!("init from rust");
-        unsafe{ Example::perform_super(objc_self.assuming_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assuming_autoreleasepool(), ()) }
+        unsafe{ Example::perform_super(objc_self.assume_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assume_autoreleasepool(), ()) }
     }
 }
 
@@ -669,7 +669,7 @@ mod example_payload_methods {
 }
 
     extern "C" fn sample(objc_self: &ExamplePayloadMethods, _sel: Sel) -> *const ExamplePayloadMethods {
-        let new_self: &ExamplePayloadMethods = unsafe{ &*ExamplePayloadMethods::perform_super(objc_self.assuming_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assuming_autoreleasepool(), () ) };
+        let new_self: &ExamplePayloadMethods = unsafe{ &*ExamplePayloadMethods::perform_super(objc_self.assume_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assume_autoreleasepool(), () ) };
         *(unsafe{new_self.payload_mut()}) = 5;
         new_self
     }
@@ -692,7 +692,7 @@ mod example_dealloc {
 }
 
     extern "C" fn dealloc(objc_self: &mut ExampleDealloc, _sel: Sel) {
-        let _: () = unsafe{ ExampleDealloc::perform_super_primitive(objc_self, Sel::from_str("dealloc"), &ActiveAutoreleasePool::assuming_autoreleasepool(), ())};
+        let _: () = unsafe{ ExampleDealloc::perform_super_primitive(objc_self, Sel::from_str("dealloc"), &ActiveAutoreleasePool::assume_autoreleasepool(), ())};
         DEALLOC_COUNT.store(true,Ordering::SeqCst);
     }
 }

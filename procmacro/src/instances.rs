@@ -7,7 +7,7 @@ pub fn instance_impl(_type: &str) -> String{
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {{
                 use ::objr::foundation::NSObjectTrait;
                 //this ought to be safe, since the object was allocated somehow and we had an autoreleasepool for that.
-                let fake_pool = unsafe {{ ::objr::bindings::ActiveAutoreleasePool::assuming_autoreleasepool() }};
+                let fake_pool = unsafe {{ ::objr::bindings::ActiveAutoreleasePool::assume_autoreleasepool() }};
                 write!(f, "{{}}",self.description(&fake_pool).to_str(&fake_pool))
             }}
         }}

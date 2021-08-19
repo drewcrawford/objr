@@ -80,7 +80,7 @@ impl<T: ObjcClass> Class<T> {
             let mut cell = self.alloc(pool);
             T::init(&mut cell, pool);
             let immutable = cell as *const T;
-            T::assuming_nonnil(immutable).assuming_retained()
+            T::assume_nonnil(immutable).assume_retained()
         }
     }
     ///`[Class alloc]`
@@ -91,8 +91,8 @@ impl<T: ObjcClass> Class<T> {
         Self::perform(self as *const Class<T> as *mut _, Sel::alloc(), pool, ()) as *const T as *mut T
     }
 
-    ///See [ObjcInstanceBehavior::assuming_nonmut_perform()]
-    unsafe fn assuming_nonmut_perform(&self) -> *mut Self {
+    ///See [ObjcInstanceBehavior::assume_nonmut_perform()]
+    unsafe fn assume_nonmut_perform(&self) -> *mut Self {
         self as *const Self as *mut Self
     }
 }
@@ -100,9 +100,9 @@ impl<T: ObjcClass> Class<T> {
 impl<T: ObjcClass> std::fmt::Display for Class<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let r = unsafe {
-            let pool = ActiveAutoreleasePool::assuming_autoreleasepool() ;
-            let description: *const NSString = Self::perform_autorelease_to_retain(self.assuming_nonmut_perform(), Sel::description(), &pool,());
-            NSString::assuming_nonnil(description).assuming_retained()
+            let pool = ActiveAutoreleasePool::assume_autoreleasepool() ;
+            let description: *const NSString = Self::perform_autorelease_to_retain(self.assume_nonmut_perform(), Sel::description(), &pool,());
+            NSString::assume_nonnil(description).assume_retained()
         };
         f.write_fmt(format_args!("{}",r))
     }

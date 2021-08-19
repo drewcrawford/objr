@@ -59,7 +59,7 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
     ///Converts to [Self] by assuming the pointer is already autoreleased.
     ///
     /// This is the case for many objc methods, depending on convention.
-    pub unsafe fn assuming_autoreleased(ptr: &T, _pool: &'a ActiveAutoreleasePool) -> Self {
+    pub unsafe fn assume_autoreleased(ptr: &T, _pool: &'a ActiveAutoreleasePool) -> Self {
         AutoreleasedCell {
             ptr: NonNullImmutable::from_reference(ptr),
             marker: PhantomData::default()
@@ -87,7 +87,7 @@ A strong pointer to an objc object.
 This is often the type you want as the return
 type when implementing an ObjC binding.
 
-When this type is created, we will `retain` (unless using an unsafe [StrongCell::assuming_retained()] constructor)
+When this type is created, we will `retain` (unless using an unsafe [StrongCell::assume_retained()] constructor)
 When the obj is dropped, we will `release`.
 
 In ObjC, the compiler tries to elide retain/release but it
@@ -114,7 +114,7 @@ impl<T: ObjcInstance> StrongCell<T> {
     pub fn retaining(cell: &T) -> Self {
         unsafe {
             objc_retain(cell as *const T as *const c_void);
-            Self::assuming_retained(cell)
+            Self::assume_retained(cell)
         }
     }
 
@@ -134,7 +134,7 @@ impl<T: ObjcInstance> StrongCell<T> {
     /// This is usually the case for some objc methods with names like `new`, `copy`, `init`, etc.
     /// # Safety
     /// If this isn't actually retained, will UB
-    pub unsafe fn assuming_retained(reference: &T) -> Self {
+    pub unsafe fn assume_retained(reference: &T) -> Self {
         StrongCell(NonNullImmutable::from_reference(reference))
     }
 }

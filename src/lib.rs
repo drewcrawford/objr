@@ -81,7 +81,7 @@ impl NSDate {
             */
             let raw = Self::perform_autorelease_to_retain(
                 //the objc method we are calling does not mutate the receiver
-                self.assuming_nonmut_perform(),
+                self.assume_nonmut_perform(),
                 ///Use the compile-time selector we declared above
                 Sel::dateByAddingTimeInterval_(),
                 ///Static checking that we have an autoreleasepool available
@@ -89,9 +89,9 @@ impl NSDate {
                  ///Arguments.  Note the trailing `,`.  Arguments are tuple types.
                  (interval,));
             //assume the result is nonnil
-            Self::assuming_nonnil(raw)
+            Self::assume_nonnil(raw)
             //assume the object is +1 convention (it is, because we called perform_autorelease_to_retain above)
-                .assuming_retained()
+                .assume_retained()
         }
     }
 }

@@ -42,13 +42,13 @@ pub trait NSObjectTrait {
 impl<T: ObjcInstance> NSObjectTrait for T {
     fn description<'a>(&self, pool:  &ActiveAutoreleasePool) -> StrongCell<NSString> {
         unsafe {
-            let raw = Self::perform_autorelease_to_retain(self.assuming_nonmut_perform(), Sel::description(), pool, ((),));
-            NSString::assuming_nonnil(raw).assuming_retained()
+            let raw = Self::perform_autorelease_to_retain(self.assume_nonmut_perform(), Sel::description(), pool, ((),));
+            NSString::assume_nonnil(raw).assume_retained()
         }
     }
     fn responds_to_selector(&self, pool: &ActiveAutoreleasePool, sel: Sel) -> bool {
         unsafe {
-            Self::perform_primitive(self.assuming_nonmut_perform(), Sel::respondsToSelector_(), pool, (sel,))
+            Self::perform_primitive(self.assume_nonmut_perform(), Sel::respondsToSelector_(), pool, (sel,))
         }
     }
     ///Initializes the object by calling `[self init]`

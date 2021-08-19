@@ -154,7 +154,7 @@ macro_rules! arguments_impl {
                else {
                    //I'm pretty sure it's street-legal to assume this
                    //although if it's not, don't sue me
-                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
+                   Err(NSError::assume_nonnil(error).assume_autoreleased(pool))
                }
            }
            #[inline] unsafe fn invoke_error<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, ($($identifier,)*): Self) -> Result<*const R, AutoreleasedCell<'a, NSError>> {
@@ -168,7 +168,7 @@ macro_rules! arguments_impl {
                else {
                    //I'm pretty sure it's street-legal to assume this
                    //although if it's not, don't sue me
-                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
+                   Err(NSError::assume_nonnil(error).assume_autoreleased(pool))
                }
            }
 
@@ -190,7 +190,7 @@ macro_rules! arguments_impl {
                else {
                    //I'm pretty sure it's street-legal to assume this
                    //although if it's not, don't sue me
-                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
+                   Err(NSError::assume_nonnil(error).assume_autoreleased(pool))
                }
 
            }
@@ -209,7 +209,7 @@ macro_rules! arguments_impl {
                else {
                    //I'm pretty sure it's street-legal to assume this
                    //although if it's not, don't sue me
-                   Err(NSError::assuming_nonnil(error).assuming_autoreleased(pool))
+                   Err(NSError::assume_nonnil(error).assume_autoreleased(pool))
                }
             }
 

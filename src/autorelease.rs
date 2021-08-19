@@ -20,7 +20,7 @@ extern "C" {
 ///
 /// There are two ways to construct this type:
 /// 1.  by dereferencing an [AutoreleasePool] (preferred)
-///2.   [ActiveAutoreleasePool::assuming_autoreleasepool()].
+///2.   [ActiveAutoreleasePool::assume_autoreleasepool()].
 pub struct ActiveAutoreleasePool {
     ///don't allow anyone else to construct this
     /// !Send !Sync
@@ -34,7 +34,7 @@ impl ActiveAutoreleasePool {
     /// # Safety
     /// This is generally unsafe, but if you are certain an autoreleasepool is active on the thread,
     /// you can use this constructor to create your own marker tpe.
-    pub unsafe fn assuming_autoreleasepool() -> ActiveAutoreleasePool {
+    pub unsafe fn assume_autoreleasepool() -> ActiveAutoreleasePool {
         ActiveAutoreleasePool {_marker: PhantomData::default() }
     }
 }
@@ -73,7 +73,7 @@ impl AutoreleasePool {
         unsafe{
             AutoreleasePool {
                 ptr: objc_autoreleasePoolPush(),
-                pool: ActiveAutoreleasePool::assuming_autoreleasepool()
+                pool: ActiveAutoreleasePool::assume_autoreleasepool()
             }
         }
     }
