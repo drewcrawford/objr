@@ -10,7 +10,7 @@ objc_class! {
 	pub trait NSStringTrait {
 		@class(NSString)
 	}
-	impl NSStringTrait for AnyClass {}
+	impl NSStringTrait for Class {}
 }
 
 objc_selector_group!(

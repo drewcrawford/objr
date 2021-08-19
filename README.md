@@ -32,7 +32,7 @@ objc_class! {
 		@class(NSDate)
 	}
 	//Add support for NSDate onto our `AnyClass` APIs.
-	impl NSDateTrait for AnyClass {}
+	impl NSDateTrait for Class {}
 }
 autoreleasepool(|pool| {
 	//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.

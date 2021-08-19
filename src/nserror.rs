@@ -5,7 +5,7 @@ objc_class! {
     pub trait NSErrorTrait {
         @class(NSError)
     }
-    impl NSErrorTrait for AnyClass {}
+    impl NSErrorTrait for Class {}
 }
 
 ///Provides certain convenience behaviors around unwrapping e.g. result types

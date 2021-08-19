@@ -236,7 +236,7 @@ fn perform_super() {
         pub trait NSNullTrait {
             @class(NSNull)
         }
-        impl NSNullTrait for AnyClass{}
+        impl NSNullTrait for Class{}
     }
     let pool = AutoreleasePool::new();
 

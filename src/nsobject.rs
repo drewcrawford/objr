@@ -72,8 +72,8 @@ impl<T: ObjcInstance> NSObjectTrait for T {
 }
 objc_class! {
     pub struct NSObject;
-    pub trait NSObjectAnyClassTrait {
+    pub trait NSObjectClassTrait {
         @class(NSObject)
     }
-    impl NSObjectAnyTrait for AnyClass {}
+    impl NSObjectTrait for Class {}
 }

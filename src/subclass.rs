@@ -296,7 +296,7 @@ macro_rules! __objc_subclass_implpart_finalize {
             });
         );
 
-        use objr::bindings::{ClassMarker,objc_instance};
+        use objr::bindings::{objc_instance};
 
         //declare our wrapper type
         //The declared type will be FFI-safe to an objc pointer, see documentation
@@ -307,8 +307,8 @@ macro_rules! __objc_subclass_implpart_finalize {
         //We avoid using `objc_class!` macro here since it imports
         //an external class.  Instead we provide our own conformance.
         impl objr::bindings::ObjcClass for $identifier {
-            #[inline] fn class() -> &'static ClassMarker<Self> {
-                unsafe{ &*(&CLASS.0 as *const _ as *const ClassMarker<Self>) }
+            #[inline] fn class() -> &'static ::objr::bindings::Class<Self> {
+                unsafe{ &*(&CLASS.0 as *const _ as *const ::objr::bindings::Class<Self>) }
             }
         }
     }

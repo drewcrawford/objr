@@ -31,7 +31,7 @@ objc_class! {
         @class(NSDate)
     }
     //Add support for NSDate onto our `AnyClass` APIs.
-    impl NSDateTrait for AnyClass {}
+    impl NSDateTrait for Class {}
 }
 let pool = AutoreleasePool::new();
 //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
@@ -54,7 +54,7 @@ objc_class! {
         @class(NSDate)
     }
     //Add support for NSDate onto our `AnyClass` APIs.
-    impl NSDateTrait for AnyClass {}
+    impl NSDateTrait for Class {}
 }
 //Declares a group of static selectors.
 objc_selector_group! {
@@ -183,7 +183,7 @@ pub mod bindings {
     pub use super::nsobject::NSObject;
     pub use super::objcinstance::{ObjcInstance,OptionalInstanceBehavior,NonNullImmutable};
     pub use super::performselector::{PerformsSelector,PerformablePointer,PerformsSelectorSuper};
-    pub use super::class::{ClassMarker};
+    pub use super::class::{Class};
     pub use super::foundation::*;
     //import macros
     pub use crate::objc_instance;
@@ -191,8 +191,7 @@ pub mod bindings {
     pub use crate::objc_enum;
     pub use crate::objc_selector_group;
     pub use crate::objc_subclass;
-    pub use procmacro::{objc_implement_class,ObjcInstance,__static_expr,__static_extern,__static_asciiz_ident_as_selector,__static_asciiz_ident_as_type_encoding,__count,__concat_idents,__static_asciiz,__static_expr3};
-    pub use crate::objc_any_class_trait;
+    pub use procmacro::{__objc_implement_class,ObjcInstance,__static_expr,__static_extern,__static_asciiz_ident_as_selector,__static_asciiz_ident_as_type_encoding,__count,__concat_idents,__static_asciiz,__static_expr3};
     pub use super::class::AnyClass;
     pub use super::arguments::Primitive;
     pub use super::exception::{try_unwrap_void};

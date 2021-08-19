@@ -104,25 +104,36 @@ pub fn _objc_selector_impl(stream: TokenStream) -> TokenStream {
     decl.parse().unwrap()
 }
 
-///Declares a trait function like `unsafe fn NSExample() -> AnyClass;`
+///Declares a trait function like `unsafe fn NSExample() -> Class<NSExample>;`
+/// objc name, rust name
 ///
 /// ```
 /// # fn main() { }
 /// # extern crate self as objr;
-/// # mod bindings { pub struct AnyClass; }
+/// # mod bindings { pub struct Class<T>(core::marker::PhantomData<T>); }
 /// # use procmacro::_objc_class_decl;
+/// struct NSExample;
 /// trait Example {
-///     _objc_class_decl!(NSExample);
+///     _objc_class_decl!(NSExample,NSExample);
 /// }
 /// ```
 #[doc(hidden)]
 #[proc_macro]
 pub fn _objc_class_decl(stream: TokenStream) -> TokenStream {
     let mut iter = stream.into_iter();
-    let class_name =  match parse_ident(&mut iter) {
+    let _class_name =  match parse_ident(&mut iter) {
         Ok(o) => o,
         Err(err) => {return error(&format!("expected class name, found {}",err))}
     };
+    let _comma = match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        other => { return error(&format!("Expected `,`, found {:?}",other))}
+    };
+    let rust_name = match parse_ident(&mut iter) {
+        Ok(o) => o,
+        Err(err) => {return error(&format!("expected rust name, found {}",err))}
+    };
+
 
     //nothing else should be here
     match iter.next() {
@@ -130,7 +141,7 @@ pub fn _objc_class_decl(stream: TokenStream) -> TokenStream {
         Some(other) => {return error(&format! ("Expected end of macro, found {}",other))}
     }
 
-    let text = classes::make_fn_partial(&class_name) + ";";
+    let text = classes::make_fn_partial(&rust_name) + ";";
     text.parse().unwrap()
 }
 
@@ -142,12 +153,13 @@ pub fn _objc_class_decl(stream: TokenStream) -> TokenStream {
 /// # fn main() {}
 /// #
 /// # mod bindings {
-/// # pub struct AnyClass(core::ffi::c_void);
+/// # pub struct Class<T>(core::ffi::c_void, core::marker::PhantomData<T>);
 /// # }
 /// # use procmacro::_objc_class_impl;
-/// trait MyTrait { unsafe fn NSObject() -> &'static ::objr::bindings::AnyClass; }
-/// impl MyTrait for ::objr::bindings::AnyClass {
-///     _objc_class_impl!(NSObject,"group");
+/// struct RustName;
+/// trait MyTrait { fn new() -> &'static ::objr::bindings::Class<RustName>; }
+/// impl MyTrait for ::objr::bindings::Class<RustName> {
+///     _objc_class_impl!(NSObject,RustName);
 /// }
 /// ```
 ///
@@ -157,17 +169,18 @@ pub fn _objc_class_decl(stream: TokenStream) -> TokenStream {
 /// extern crate self as objr;
 /// fn main() {}
 /// mod bindings {
-///     pub struct AnyClass(core::ffi::c_void);
+///     pub struct Class<T>(core::ffi::c_void, core::marker::PhantomData<T>);
 /// }
 /// use procmacro::_objc_class_impl;
-/// trait MyTrait { unsafe fn NSObject() -> &'static ::objr::bindings::AnyClass; }
-/// impl MyTrait for ::objr::bindings::AnyClass {
-///     _objc_class_impl!(NSObject);
+/// struct Type1;
+/// trait MyTrait { fn new() -> &'static ::objr::bindings::Class<Type1>; }
+/// impl MyTrait for ::objr::bindings::Class<Type2> {
+///     _objc_class_impl!(NSObject,Type1);
 /// }
-///
-/// trait MyTrait2 { unsafe fn NSObject() -> &'static ::objr::bindings::AnyClass; }
-/// impl MyTrait2 for ::objr::bindings::AnyClass {
-///     _objc_class_impl!(NSObject);
+/// struct Type2;
+/// trait MyTrait2 { fn new() -> &'static ::objr::bindings::Class<Type2>; }
+/// impl MyTrait2 for ::objr::bindings::Class<Type2> {
+///     _objc_class_impl!(NSObject,Type2);
 /// }
 /// ```
 #[doc(hidden)]
@@ -178,7 +191,15 @@ pub fn _objc_class_impl(stream: TokenStream) -> TokenStream {
         Ok(o) => o,
         Err(err) => {return error(&format!("expected class name, found {}",err))}
     };
-    classes::implement_any_class(&class_name).parse().unwrap()
+    let _comma = match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        other => { return error(&format!("Expected `,`, found {:?}",other))}
+    };
+    let rust_name =  match parse_ident(&mut iter) {
+        Ok(o) => o,
+        Err(err) => {return error(&format!("expected class name, found {}",err))}
+    };
+    classes::implement_class_type(&class_name,&rust_name).parse().unwrap()
 }
 
 ///Derive macro for ObjcInstance.
@@ -217,36 +238,28 @@ pub fn derive_objc_instance(stream: TokenStream) -> TokenStream {
 /// # extern crate self as objr; //pretend we're objr crate
 /// # pub mod bindings { //shim objr objects
 /// #   use std::marker::PhantomData;
-/// #   pub struct ClassMarker<T: ?Sized>(core::ffi::c_void, PhantomData<T>);
-/// #   pub struct AnyClass;
-/// #   pub trait ObjcClass { fn class() -> &'static ClassMarker<Self>; }
+/// #   pub struct Class<T: ?Sized>(core::ffi::c_void, PhantomData<T>);
+/// #   pub trait ObjcClass { fn class() -> &'static Class<Self>; }
 /// # }
-/// use procmacro::objc_implement_class;
+/// use procmacro::__objc_implement_class;
 /// struct RustIdentifier(core::ffi::c_void);
 /// trait InScopeAutoTrait {
-///     fn NSObject() -> &'static objr::bindings::AnyClass;
+///     fn new() -> &'static objr::bindings::Class<RustIdentifier>;
 /// }
-/// impl InScopeAutoTrait for objr::bindings::AnyClass {
-///      fn NSObject() -> &'static objr::bindings::AnyClass { todo!() }
+/// impl InScopeAutoTrait for objr::bindings::Class<RustIdentifier> {
+///      fn new() -> &'static objr::bindings::Class<RustIdentifier> { todo!() }
 /// }
-/// objc_implement_class!{RustIdentifier,NSObject}
+/// __objc_implement_class!{RustIdentifier}
 /// ```
+#[doc(hidden)]
 #[proc_macro]
-pub fn objc_implement_class(stream: TokenStream) -> TokenStream {
+pub fn __objc_implement_class(stream: TokenStream) -> TokenStream {
     let mut iter = stream.into_iter();
     let rust_identifier = match parse_ident(&mut iter) {
         Ok(i)=> i,
         Err(err) => { return error(&format!("Expected RustIdentifier {:?}",err))}
     };
-    let _comma = match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        other => { return error(&format!("Expected `,`, found {:?}",other))}
-    };
-    let objc_class = match parse_ident(&mut iter) {
-        Ok(i) => i,
-        Err(err) => { return error(&format!("Expected ObjcClass identifier, {:?}",err))}
-    };
-    let result = classes::implement_class(&rust_identifier.to_string(), &objc_class.to_string());
+    let result = classes::implement_class(&rust_identifier.to_string());
     //error(&result)
     result.parse().unwrap()
 }
