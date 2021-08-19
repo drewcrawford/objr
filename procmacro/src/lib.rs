@@ -282,22 +282,20 @@ pub fn objc_nsstring(stream: TokenStream) -> TokenStream {
     strings::static_string(&literal).parse().unwrap()
 }
 
-/// Declares a static bytestring with 0 appended, with the given link_section and export_name instructions.
+/// Declares a static bytestring with 0 appended, with the given link_section.
 ///
 /// It's quite difficult to concat attributes in Rust due to limitations on emitting non-items.  I can't even get munchers to inject an attribute on a macro (that expands to an item).  This is a one-shot macro that does everything for you.
 /// ```
 /// use procmacro::__static_asciiz;
-/// __static_asciiz!("__DATA,valid_section","EXPORT_NAME_1","EXPORT_NAME_2",IDENT,"ascii");
+/// __static_asciiz!("__DATA,valid_section",IDENT,"ascii");
 /// ```
 /// Should expand to something like
 /// ```
 /// #[link_section="__DATA,valid_section"]
-/// #[export_name="EXPORT_NAME_1EXPORT_NAME_2"]
 /// static IDENT: [u8; 6] = *b"ascii\0";
 /// ```
 /// # Notes:
 /// * the "ascii" argument may be an ident instead of a string literal
-/// * the "EXPORT_NAME_2" argument may be an ident instead of a string literal
 #[doc(hidden)]
 #[proc_macro]
 pub fn __static_asciiz(stream: TokenStream) -> TokenStream {
@@ -305,24 +303,6 @@ pub fn __static_asciiz(stream: TokenStream) -> TokenStream {
     let link_section = match parse_literal_string(&mut iter) {
         Ok(ParsedLiteral::Literal(l)) => {l}
         other => {return error(&format!("Expected link section literal, got {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
-    let export_name_1 = match parse_literal_string(&mut iter) {
-        Ok(ParsedLiteral::Literal(l)) => {l}
-        other => {return error(&format!("Expected export name literal (prefix), got {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
-    let export_name_2 = match misc::parse_ident_or_literal(&mut iter) {
-        Ok(l) => {l}
-        other => {return error(&format!("Expected export name (suffix) ident/literal, {:?}",other))}
     };
     match iter.next() {
         Some(TokenTree::Punct(p)) if p == ',' => (),
@@ -346,22 +326,20 @@ pub fn __static_asciiz(stream: TokenStream) -> TokenStream {
         None => (),
         Some(e) => { return error(&format!("Expected end of macro invocation, got {:?}",e))}
     };
-    let export_name = export_name_1 + &export_name_2;
-    export_name::export_name_ascii(&link_section, &export_name, &ident, &ascii).parse().unwrap()
+    export_name::export_ascii(&link_section, &ident, &ascii).parse().unwrap()
 
 }
 
-/// Declares a static bytestring with 0 appended, with the given link_section and export_name instructions.  Variant of [__static_asciiz] that concatenates the ident from 2 parts.
+/// Declares a static bytestring with 0 appended, with the given link_section. Variant of [__static_asciiz] that concatenates the ident from 2 parts.
 ///
 /// It's quite difficult to concat attributes in Rust due to limitations on emitting non-items.  I can't even get munchers to inject an attribute on a macro (that expands to an item).  This is a one-shot macro that does everything for you.
 /// ```
 /// use procmacro::__static_asciiz_ident2;
-/// __static_asciiz_ident2!("__DATA,valid_section","EXPORT_NAME_1",EXPORT_NAME_2,"IDENT_1",IDENT_2,"ascii");
+/// __static_asciiz_ident2!("__DATA,valid_section","IDENT_1",IDENT_2,"ascii");
 /// ```
 /// Should expand to something like
 /// ```
 /// #[link_section="__DATA,valid_section"]
-/// #[export_name="EXPORT_NAME_1EXPORT_NAME_2"]
 /// static IDENT_1IDENT_2: [u8; 6] = *b"ascii\0";
 /// ```
 #[doc(hidden)]
@@ -371,24 +349,6 @@ pub fn __static_asciiz_ident2(stream: TokenStream) -> TokenStream {
     let link_section = match parse_literal_string(&mut iter) {
         Ok(ParsedLiteral::Literal(l)) => {l}
         other => {return error(&format!("Expected link section literal, got {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
-    let export_name_1 = match parse_literal_string(&mut iter) {
-        Ok(ParsedLiteral::Literal(l)) => {l}
-        other => {return error(&format!("Expected export name literal (prefix), got {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
-    let export_name_2 = match misc::parse_ident(&mut iter) {
-        Ok(l) => {l}
-        other => {return error(&format!("Expected export name (suffix) ident/literal, {:?}",other))}
     };
     match iter.next() {
         Some(TokenTree::Punct(p)) if p == ',' => (),
@@ -424,9 +384,8 @@ pub fn __static_asciiz_ident2(stream: TokenStream) -> TokenStream {
         Some(e) => { return error(&format!("Expected end of macro invocation, got {:?}",e))}
     };
 
-    let export_name = export_name_1 + &export_name_2;
 
-    export_name::export_name_ascii(&link_section, &export_name, &(ident_1 + &ident_2), &ascii).parse().unwrap()
+    export_name::export_ascii(&link_section, &(ident_1 + &ident_2), &ascii).parse().unwrap()
 }
 
 /// Declares a static bytestring with 0 appended, by parsing an objc declaration into a selector name. Variant of [__static_asciiz] that concatenates the ident from 2 parts and parses objc declarations.
@@ -434,12 +393,11 @@ pub fn __static_asciiz_ident2(stream: TokenStream) -> TokenStream {
 /// It's quite difficult to concat attributes in Rust due to limitations on emitting non-items.  I can't even get munchers to inject an attribute on a macro (that expands to an item).  This is a one-shot macro that does everything for you.
 /// ```
 /// use procmacro::__static_asciiz_ident_as_selector;
-/// __static_asciiz_ident_as_selector!("__DATA,valid_section","EXPORT_NAME_1",EXPORT_NAME_2,EXPORT_NAME_3,"IDENT_1",IDENT_2,"-(void) example");
+/// __static_asciiz_ident_as_selector!("__DATA,valid_section","IDENT_1",IDENT_2,"-(void) example");
 /// ```
 /// Should expand to something like
 /// ```
 /// #[link_section="__DATA,valid_section"]
-/// #[export_name="EXPORT_NAME_1EXPORT_NAME_2EXPORT_NAME_3"]
 /// static IDENT_1IDENT_2: [u8; 8] = *b"example\0";
 /// ```
 #[doc(hidden)]
@@ -449,32 +407,6 @@ pub fn __static_asciiz_ident_as_selector(stream: TokenStream) -> TokenStream {
     let link_section = match parse_literal_string(&mut iter) {
         Ok(ParsedLiteral::Literal(l)) => {l}
         other => {return error(&format!("Expected link section literal, got {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
-    let export_name_1 = match parse_literal_string(&mut iter) {
-        Ok(ParsedLiteral::Literal(l)) => {l}
-        other => {return error(&format!("Expected export name literal (prefix), got {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
-    let export_name_2 = match misc::parse_ident(&mut iter) {
-        Ok(l) => {l}
-        other => {return error(&format!("Expected export name (suffix) ident/literal, {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-    let export_name_3 = match misc::parse_ident(&mut iter) {
-        Ok(l) => {l}
-        other => {return error(&format!("Expected export name (suffix) ident/literal, {:?}",other))}
     };
     match iter.next() {
         Some(TokenTree::Punct(p)) if p == ',' => (),
@@ -514,8 +446,7 @@ pub fn __static_asciiz_ident_as_selector(stream: TokenStream) -> TokenStream {
         return error(&selector.err().unwrap());
     }
 
-    let export_name = export_name_1 + &export_name_2 + &export_name_3;
-    export_name::export_name_ascii(&link_section, &export_name, &(ident_1 + &ident_2), &selector.unwrap()).parse().unwrap()
+    export_name::export_ascii(&link_section,  &(ident_1 + &ident_2), &selector.unwrap()).parse().unwrap()
 }
 
 /// Declares a static bytestring with 0 appended, by parsing an objc declaration into a type encoding. Variant of [__static_asciiz] that concatenates the ident from 2 parts and parses objc declarations.
@@ -523,12 +454,11 @@ pub fn __static_asciiz_ident_as_selector(stream: TokenStream) -> TokenStream {
 /// It's quite difficult to concat attributes in Rust due to limitations on emitting non-items.  I can't even get munchers to inject an attribute on a macro (that expands to an item).  This is a one-shot macro that does everything for you.
 /// ```
 /// use procmacro::__static_asciiz_ident_as_type_encoding;
-/// __static_asciiz_ident_as_type_encoding!("__DATA,valid_section","EXPORT_NAME_1",EXPORT_NAME_2,EXPORT_NAME_3,"IDENT_1",IDENT_2,"-(void) example");
+/// __static_asciiz_ident_as_type_encoding!("__DATA,valid_section","IDENT_1",IDENT_2,"-(void) example");
 /// ```
 /// Should expand to something like
 /// ```
 /// #[link_section="__DATA,valid_section"]
-/// #[export_name="EXPORT_NAME_1EXPORT_NAME_2"]
 /// static IDENT_1IDENT_2: [u8; 7] = *b"v20@0:8";
 /// ```
 #[doc(hidden)]
@@ -543,33 +473,6 @@ pub fn __static_asciiz_ident_as_type_encoding(stream: TokenStream) -> TokenStrea
         Some(TokenTree::Punct(p)) if p == ',' => (),
         o => { return error(&format!("Expected comma, got {:?}",o))}
     };
-
-    let export_name_1 = match parse_literal_string(&mut iter) {
-        Ok(ParsedLiteral::Literal(l)) => {l}
-        other => {return error(&format!("Expected export name literal (prefix), got {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
-    let export_name_2 = match misc::parse_ident(&mut iter) {
-        Ok(l) => {l}
-        other => {return error(&format!("Expected export name (mid) ident/literal, {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-    let export_name_3 = match misc::parse_ident(&mut iter) {
-        Ok(l) => {l}
-        other => {return error(&format!("Expected export name (suffix) ident/literal, {:?}",other))}
-    };
-    match iter.next() {
-        Some(TokenTree::Punct(p)) if p == ',' => (),
-        o => { return error(&format!("Expected comma, got {:?}",o))}
-    };
-
     let ident_1 = match parse_literal_string(&mut iter) {
         Ok(ParsedLiteral::Literal(l)) => {l}
         o => { return error(&format!("Expected identifier prefix (literal), got {:?}",o))}
@@ -602,8 +505,7 @@ pub fn __static_asciiz_ident_as_type_encoding(stream: TokenStream) -> TokenStrea
     if type_encoding.is_err() {
         return error(&type_encoding.err().unwrap());
     }
-    let export_name = export_name_1 + &export_name_2 + &export_name_3;
-    export_name::export_name_ascii(&link_section, &export_name, &(ident_1 + &ident_2), &type_encoding.unwrap()).parse().unwrap()
+    export_name::export_ascii(&link_section, &(ident_1 + &ident_2), &type_encoding.unwrap()).parse().unwrap()
 }
 
 ///Declares a static expression with `link_name` and `link_section` directives.

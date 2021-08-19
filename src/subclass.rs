@@ -61,7 +61,7 @@ macro_rules! __objc_subclass_implpart_a {
             weak_ivar_layout: *const c_void,
             base_properties: *const c_void,
         }
-        objr::bindings::__static_asciiz!("__TEXT,__objc_classname,cstring_literals","\x01L_OBJC_CLASS_NAME_.",$objcname,$CLASS_NAME,$objcname);
+        objr::bindings::__static_asciiz!("__TEXT,__objc_classname,cstring_literals",$CLASS_NAME,$objcname);
 
         //declare RO_FLAGS options
         const RO_FLAGS_METACLASS: u32 = 1;
@@ -180,7 +180,7 @@ macro_rules! __objc_subclass_implpart_method_list {
                 objr::__objc_sublcass_implpart_method_prelude!(MethodT,MethodListT);
 
                 $(
-                    objr::bindings::__static_asciiz_ident_as_selector!("__TEXT,__objc_methname,cstring_literals","\x01L_OBJC_METH_VAR_NAME_.",$objcname, $methodfn,"METHNAME_",$methodfn,$objcmethod);
+                    objr::bindings::__static_asciiz_ident_as_selector!("__TEXT,__objc_methname,cstring_literals","METHNAME_",$methodfn,$objcmethod);
                     /*todo: The real objc compiler deduplicates these values across different functions.
                     I'm unclear on exactly what the value of deduplicating this is.  From studying compiled binaries
                     it appears that the *linker* also deduplicates local (`L`) symbols of this type, so I'm
@@ -188,7 +188,7 @@ macro_rules! __objc_subclass_implpart_method_list {
 
                     Leaving this for now.
                     */
-                    objr::bindings::__static_asciiz_ident_as_type_encoding!("__TEXT,__objc_methtype,cstring_literals","\x01L_OBJC_METH_VAR_TYPE_.",$objcname, $methodfn,"METHTYPE_",$methodfn,$objcmethod);
+                    objr::bindings::__static_asciiz_ident_as_type_encoding!("__TEXT,__objc_methtype,cstring_literals","METHTYPE_",$methodfn,$objcmethod);
                 )+
 
                 const COUNT: usize = objr::bindings::__count!($($methodfn),*);
@@ -216,9 +216,9 @@ macro_rules! __objc_subclass_implpart_method_list {
 #[macro_export]
 macro_rules! __objc_subclass_implpart_ivar_list {
     ($objcname: ident, $payloadtype:ty, $FRAGILE_BASE_CLASS_OFFSET: ident, $IVAR_LIST:ident) => {
-        objr::bindings::__static_asciiz!("__TEXT,__objc_methname,cstring_literals","\x01L_OBJC_METH_VAR_NAME_.",$objcname,IVAR_NAME,"payload");
+        objr::bindings::__static_asciiz!("__TEXT,__objc_methname,cstring_literals",IVAR_NAME,"payload");
             //don't explain to objc what type this is
-            objr::bindings::__static_asciiz!("__TEXT,__objc_methtype,cstring_literals","\x01L_OBJC_METH_VAR_TYPE_.",$objcname,IVAR_TYPE,"?");
+            objr::bindings::__static_asciiz!("__TEXT,__objc_methtype,cstring_literals",IVAR_TYPE,"?");
 
             //This symbol seems involved in solving the fragile base class problem.
             //I am told that if the superclass changes its layout, this type.
