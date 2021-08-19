@@ -11,15 +11,33 @@ use crate::class::AnyClass;
 
 ///Types that can be performedSelector.
 ///
-pub trait PerformablePointer {}
+/// # Stability
+/// Do not implement this type directly.  Instead use [objc_instance!] or [objc_class!].
+///
+/// # Safety
+/// This requires the underlying type to be FFI-safe and a valid ObjC pointer.
+///
+//- not documentation
+//This cannot be sealed because we intend it to be implemented on every ObjcInstance
+pub unsafe trait PerformablePointer {}
 
-impl<O: ObjcInstance> PerformablePointer for O {}
+//should be safe because ObjcInstance is FFI-safe
+unsafe impl<O: ObjcInstance> PerformablePointer for O {}
 
 ///Trait where we can also call methods on super.  This requires knowing a superclass.
-pub trait PerformableSuper: PerformablePointer {
+/// # Stability
+/// Do not implement this type directly.  Instead use [objc_instance!] or [objc_class!].
+///
+/// # Safety
+/// This requires the underlying type to be FFI-safe and a valid Objc pointer.
+///
+// - not documentation
+//This cannot be sealed because we intend it to be implemented on every ObjCClass
+pub unsafe trait PerformableSuper: PerformablePointer {
     fn any_class() -> &'static AnyClass;
 }
-impl <O: ObjcClass + 'static> PerformableSuper for O {
+//should be OK since ObjcClass is FFI-safe
+unsafe impl <O: ObjcClass + 'static> PerformableSuper for O {
     fn any_class() -> &'static AnyClass {
         //safe because these are memory-compatible and we are downcasting
         unsafe{ std::mem::transmute(Self::class()) }
@@ -33,10 +51,13 @@ extern {
 
 
 ///Trait that provides `PerformSelector` implementations.  Autoimplelmented for `T: PerformablePointer`
-pub trait PerformsSelector {
+///
+/// # Stability
+/// Do not implement this trait yourself.  Instead use [objc_instance!] or [objc_class!]
+pub trait PerformsSelector  {
     ///Performs selector, returning a primitive type.
     /// # Safety
-    /// It's UB to call anything that throws, anything that isn't a valid selector for the type
+    /// See the safety section of [objc_instance!].
     unsafe fn perform_primitive<A: Arguments, R: Primitive>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> R;
 
     ///Performs, returning the specified [ObjcInstance].  You must coerce this into some type according to your knowledge of ObjC convention.
@@ -44,12 +65,17 @@ pub trait PerformsSelector {
     ///Performs, returning the result of the specified [ObjcInstance].  You must coerce this into some type according to your knowledge of ObjC convention.
     ///
     /// By convention, the error value is an autoreleased [NSError].
+    ///
+    ///# Safety
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_result<'a, A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &'a ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
 
     ///Performs, returning the specified [ObjcInstance].
     ///
     /// This variant assumes 1) the calling convention is +0, 2) the type returned to you is +1.  The implementation
     /// knows a trick to perform this conversion faster than you can do it manually.
+    ///# Safety
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> *const R;
 
     ///Performs, returning the specified [ObjcInstance].
@@ -57,6 +83,8 @@ pub trait PerformsSelector {
     /// This variant assumes 1) the calling convention is +0, 2) the type returned to you is +1.  The implementation
     /// knows a trick to perform this conversion faster than you can do it manually.
     ///By convention, the error value is an autoreleased [NSError].
+    ///# Safety
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_result_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'_, NSError>>;
 }
 
@@ -108,21 +136,33 @@ impl<T: PerformablePointer> PerformsSelector for T  {
 ///Variants of the perform functions that talk to `super` instead of `self`.  In general, this is supported on classes.
 pub trait PerformsSelectorSuper {
     ///Performs selector, returning a primitive type.
+    ///
     /// # Safety
-    /// It's UB to call anything that throws, anything that isn't a valid selector for the type,
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_super_primitive<A: Arguments, R: Primitive>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> R;
 
     ///Performs, returning the specified [ObjcInstance].  You must coerce this into some type according to your knowledge of ObjC convention.
+    ///
+    /// # Safety
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_super<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> *const R;
     ///Performs, returning the result of the specified [ObjcInstance].  You must coerce this into some type according to your knowledge of ObjC convention.
     ///
     /// By convention, the error value is an autoreleased [NSError].
+    ///
+    ///
+    /// # Safety
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_super_result<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'_, NSError>>;
 
     ///Performs, returning the specified [ObjcInstance].
     ///
     /// This variant assumes 1) the calling convention is +0, 2) the type returned to you is +1.  The implementation
     /// knows a trick to perform this conversion faster than you can do it manually.
+    ///
+    ///
+    /// # Safety
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_super_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> *const R;
 
     ///Performs, returning the specified [ObjcInstance].
@@ -130,6 +170,9 @@ pub trait PerformsSelectorSuper {
     /// This variant assumes 1) the calling convention is +0, 2) the type returned to you is +1.  The implementation
     /// knows a trick to perform this conversion faster than you can do it manually.
     ///By convention, the error value is an autoreleased [NSError].
+    ///
+    /// # Safety
+    ///See the safety section of [objc_instance!].
     unsafe fn perform_super_result_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'_, NSError>>;
 
 }

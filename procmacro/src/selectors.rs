@@ -14,9 +14,7 @@ pub fn sel_expression(selector: &str) -> String {
             static L_OBJC_SELECTOR_REFERENCES_: &'static [u8; {len}] = &L_OBJC_METH_VAR_NAME_;
             //don't let the optimizer look at the value we just set, since it will be fixedup by dyld
             let read_volatile: &'static [u8; {len}] = ::core::ptr::read_volatile(&L_OBJC_SELECTOR_REFERENCES_ );
-            ::objr::bindings::Sel {{
-               ptr: unsafe{{ std::mem::transmute(read_volatile) }}
-            }}
+            ::objr::bindings::Sel::from_ptr( unsafe{{ std::mem::transmute(read_volatile) }} )
         }}
         codegen_workaround()
     }}"#

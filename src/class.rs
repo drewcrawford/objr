@@ -42,7 +42,8 @@ pub trait ObjcClass: ObjcInstance + Sized {
 pub struct Class<T: ObjcClass>(c_void, PhantomData<T>);
 
 ///Classes can use performSelector
-impl<T: ObjcClass> PerformablePointer for Class<T> {}
+impl<T: ObjcClass> objr::private::Sealed for Class<T> {}
+unsafe impl<T: ObjcClass> PerformablePointer for Class<T> {}
 
 impl<T: ObjcClass> PartialEq for Class<T> {
     fn eq(&self, other: &Self) -> bool {
