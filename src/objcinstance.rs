@@ -80,8 +80,18 @@ pub trait ObjcInstanceBehavior {
     /// There is no guarantee that the source type is compatible with the destination type.
     unsafe fn cast<R : ObjcInstance>(underlying: *const Self) -> *const R;
 
-    ///Assuming the pointer is non-nil, returns a pointer type
+    ///Assuming the pointer is non-nil, returns a pointer type.
+    ///
+    /// The opposite of this function is [nullable].
+    ///
+    /// # Safety
+    /// You must guarantee each of the following:
+    /// * Pointer is non-nil
+    /// * Points to a valid objc object of the type specified
     unsafe fn assume_nonnil(ptr: *const Self) -> NonNullImmutable<Self>;
+
+    ///Safely casts the object to an `Option<NonNullImmutable>`.  Suitable for implementing nullable functions.
+    fn nullable(ptr: *const Self) -> Option<NonNullImmutable<Self>>;
 
     ///Allows you to call [objr::bindings::PerformsSelector::perform] from a nonmutating context.
     ///
@@ -99,10 +109,54 @@ impl<T: ObjcInstance> ObjcInstanceBehavior for T {
     unsafe fn assume_nonnil(ptr: *const Self) -> NonNullImmutable<Self> {
         NonNullImmutable(NonNull::new_unchecked(ptr as *mut Self))
     }
+
+    fn nullable(ptr: *const Self) -> Option<NonNullImmutable<Self>> {
+        if ptr.is_null() {
+            None
+        }
+        else {
+            //we checked this above
+            Some(unsafe{ Self::assume_nonnil(ptr) })
+        }
+    }
+
     unsafe fn assume_nonmut_perform(&self) -> *mut Self {
         self as *const Self as *mut Self
     }
 
+}
+
+///Helper for Option<NonNullable>
+
+pub trait NullableBehavior {
+    type T: ObjcInstance;
+    ///Assumes the object has been autoreleased and converts to an Option<AutoreleasedCell>
+    ///
+    /// # Safety:
+    /// You must guarantee each of the following:
+    /// * Object is autoreleased already
+    /// * Object is not deallocated
+    /// * Object was initialized
+    unsafe fn assume_autoreleased<'a>(self, pool: &'a ActiveAutoreleasePool) -> Option<AutoreleasedCell<'a, Self::T>>;
+    ///Assumes the object has been retained and converts to a StrongCell.
+    ///
+    /// # Safety
+    /// You must guarantee each of the following:
+    /// * Object was retained (+1)
+    /// * Object is not deallocated
+    /// * Object was initialized
+    unsafe fn assume_retained(self) -> Option<StrongCell<Self::T>>;
+}
+impl<O: ObjcInstance> NullableBehavior for Option<NonNullImmutable<O>> {
+    type T = O;
+
+    unsafe fn assume_autoreleased<'a>(self, pool: &'a ActiveAutoreleasePool) -> Option<AutoreleasedCell<'a, O>> {
+        self.map(|m| m.assume_autoreleased(pool))
+    }
+
+    unsafe fn assume_retained(self) -> Option<StrongCell<Self::T>> {
+        self.map(|m| m.assume_retained())
+    }
 }
 
 /**
@@ -311,11 +365,16 @@ macro_rules! objc_instance  {
 ///Defines some behavior on `Option<&ObjcInstance>`
 pub trait OptionalInstanceBehavior<Deref> {
     ///Gets a pointer for the option.  If `self` is `nil`, the pointer will be `null`, otherwise it will be the underlying reference.
-    fn as_ptr(&self) -> *const Self;
+    fn as_ptr(&self) -> *const Deref;
 }
 
 impl<T: ObjcInstance> OptionalInstanceBehavior<T> for Option<&T> {
-    fn as_ptr(&self) -> *const Self {
-        self as *const Self
+    fn as_ptr(&self) -> *const T {
+        if let Some(&s) = self.as_ref() {
+            s
+        }
+        else {
+            std::ptr::null()
+        }
     }
 }

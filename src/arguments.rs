@@ -59,8 +59,8 @@ pub trait Arguments: Sized + Debug + crate::private::Sealed {
 /// The primary constraint of this protocol is it needs to be `#[repr(transparent)]`.
 /// Since this cannot be otherwise verified, we're going to declare it `unsafe`.
 pub unsafe trait Arguable  {}
-//primitive types
-unsafe impl<P: Primitive> Arguable for P {}
+
+unsafe impl<O: ObjcInstance> Arguable for &O {}
 
 
 ///Non-reference types that are ObjC FFI-safe.  This marker
@@ -72,21 +72,44 @@ unsafe impl<P: Primitive> Arguable for P {}
 ///
 /// # Note
 /// This is unsealed because we want to allow structs to be declared as primitives in external crates.
-pub unsafe trait Primitive {}
+pub unsafe trait Primitive: Arguable {}
 
 
 //This is safe because these are all ffi-safe.
 unsafe impl Primitive for Sel {}
+unsafe impl Arguable for Sel {}
+
 unsafe impl Primitive for bool{}
+unsafe impl Arguable for bool{}
+
 unsafe impl Primitive for *mut c_void {}
+unsafe impl Arguable for *mut c_void {}
+
 unsafe impl Primitive for *const c_void {}
+unsafe impl Arguable for *const c_void {}
+
 unsafe impl Primitive for f64 {}
+unsafe impl Arguable for f64 {}
+
 unsafe impl Primitive for () {}
+unsafe impl Arguable for () {}
+
 unsafe impl Primitive for u64{}
+unsafe impl Arguable for u64{}
+
 unsafe impl Primitive for c_char {}
+unsafe impl Arguable for c_char {}
+
 unsafe impl Primitive for *const u8 {}
+unsafe impl Arguable for *const u8 {}
+
 unsafe impl Primitive for *const i8 {}
+unsafe impl Arguable for *const i8 {}
+
+unsafe impl Arguable for i64 {}
 unsafe impl Primitive for i64 {}
+
+
 
 ///Implementation macro for declaring [Argument] types.
 macro_rules! arguments_impl {

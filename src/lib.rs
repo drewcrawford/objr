@@ -166,7 +166,7 @@ pub mod bindings {
     pub use super::sel::Sel;
     pub use super::nsobject::NSObjectTrait;
     pub use super::nsobject::NSObject;
-    pub use super::objcinstance::{ObjcInstance,OptionalInstanceBehavior,NonNullImmutable};
+    pub use super::objcinstance::{ObjcInstance,OptionalInstanceBehavior,NonNullImmutable,NullableBehavior};
     pub use super::performselector::{PerformsSelector,PerformablePointer,PerformsSelectorSuper};
     pub use super::class::{Class};
     pub use super::foundation::*;
@@ -189,6 +189,7 @@ pub mod bindings {
     //used by macros
     #[doc(hidden)]
     pub use procmacro::{_objc_selector_decl,_objc_selector_impl,__use,__mod};
+
 }
 
 mod private {
