@@ -7,11 +7,9 @@ use crate::objcinstance::NonNullImmutable;
 use objr::typealias::NSUInteger;
 
 objc_class! {
-	pub struct NSString;
-	pub trait NSStringTrait {
-		@class(NSString)
+	pub struct NSString {
+		@class (NSString)
 	}
-	impl NSStringTrait for Class {}
 }
 
 objc_selector_group!(

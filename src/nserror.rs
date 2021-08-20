@@ -2,10 +2,8 @@
 
 use super::bindings::*;
 objc_class! {
-    pub struct NSError;
-    pub trait NSErrorTrait {
+    pub struct NSError {
         @class(NSError)
     }
-    impl NSErrorTrait for Class {}
 }
 

@@ -232,11 +232,9 @@ fn perform_super() {
 
     //We need an arbitrary subclass for this test
     objc_class! {
-        pub struct NSNull;
-        pub trait NSNullTrait {
+        pub struct NSNull {
             @class(NSNull)
         }
-        impl NSNullTrait for Class{}
     }
     let pool = AutoreleasePool::new();
 

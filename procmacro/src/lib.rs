@@ -258,9 +258,22 @@ pub fn __objc_implement_class(stream: TokenStream) -> TokenStream {
     let mut iter = stream.into_iter();
     let rust_identifier = match parse_ident(&mut iter) {
         Ok(i)=> i,
-        Err(err) => { return error(&format!("Expected RustIdentifier {:?}",err))}
+        Err(err) => { return error(&format!("Expected rust identifier {:?}",err))}
     };
-    let result = classes::implement_class(&rust_identifier.to_string());
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+    let objc_identifier = match parse_ident(&mut iter) {
+        Ok(ident) => ident,
+        Err(e) => { return error(&format!("Expected objc identifier, got {}",e))}
+    };
+    match iter.next() {
+        None => (),
+        Some(e) => { return error(&format!("Expected end of macro invocation, got {:?}",e))}
+    };
+
+    let result = classes::implement_class(&rust_identifier, &objc_identifier);
     //error(&result)
     result.parse().unwrap()
 }

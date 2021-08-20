@@ -131,25 +131,13 @@ macro_rules! objc_class  {
     (
         $(#[$attribute:meta])*
         $pub:vis
-        struct $objctype:ident;
-
-        $(#[$traitattribute:meta])*
-        $traitpub:vis
-        trait $traitname:ident {
+        struct $objctype:ident {
             @class($objcname:ident)
         }
-        impl $trait2:ident for Class {}
     ) => {
         ::objr::bindings::objc_instance! {
             $(#[$attribute])*
             $pub struct $objctype;
-        }
-        $(#[$traitattribute])*
-        $traitpub trait $traitname {
-                ::objr::bindings::_objc_class_decl!{$objcname,$objctype}
-        }
-        impl $traitname for ::objr::bindings::Class<$objctype> {
-                ::objr::bindings::_objc_class_impl!{$objcname,$objctype}
         }
         ::objr::bindings::__objc_implement_class!{$objctype,$objcname}
     };
