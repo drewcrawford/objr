@@ -30,7 +30,7 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     /// * Object is not deallocated
     /// * Object was initialized
     /// * Object is 'static, that is, it has no references to external (Rust) memory.
-    /// If this is not the case, see [assume_retained_limited].
+    /// If this is not the case, see [NonNullImmutable::assume_retained_limited].
     pub unsafe fn assume_retained(self) -> StrongCell<T> {
         StrongCell::assume_retained(self.0.as_ref())
     }
@@ -99,7 +99,7 @@ pub trait ObjcInstanceBehavior {
 
     ///Assuming the pointer is non-nil, returns a pointer type.
     ///
-    /// The opposite of this function is [nullable].
+    /// The opposite of this function is [Self::nullable].
     ///
     /// # Safety
     /// You must guarantee each of the following:
