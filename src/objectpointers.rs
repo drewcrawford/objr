@@ -5,10 +5,14 @@ For safe types:
 1.  AutoreleasedCell - part of an autorelease pool
 2.  StrongCell - Compiler emits retain/release calls.
 
-Mutable variants (not yet implemented todo):
+Mutable variants:
 
-1.  AutoreleasedMutableCell - like [AutoreleasedCell] but mutable
-2.  StrongMutableCell - like [StrongCell] but mutable
+1.  AutoreleasedMutCell - like [AutoreleasedCell] but mutable
+2.  StrongMutCell - like [StrongCell] but mutable
+
+Lifetime variants:
+1.  StrongLifetimeCell - like [StrongCell] but tracks some explicit lifetime.  Often used for objects that borrow Rust storage.
+
 
 See documentation for particular cells.
 */
@@ -17,6 +21,8 @@ use core::ffi::{c_void};
 use crate::bindings::{ActiveAutoreleasePool,ObjcInstance};
 use std::marker::PhantomData;
 use crate::objcinstance::NonNullImmutable;
+use std::ptr::NonNull;
+use std::fmt::Debug;
 
 ///Turning this on may help debug retain/release
 const DEBUG_MEMORY: bool = false;
@@ -54,8 +60,6 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
             marker: Default::default()
         }
     }
-}
-impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
     ///Converts to [Self] by assuming the pointer is already autoreleased.
     ///
     /// This is the case for many objc methods, depending on convention.
@@ -65,8 +69,24 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
             marker: PhantomData::default()
         }
     }
-}
 
+    ///Converts to a mutable version.
+    /// 
+    /// # Safety
+    /// You are responsible to check:
+    /// * There are no other references to the type, mutable or otherwise
+    /// * The type is in fact "mutable", whatever that means.  Specifically, to whatever extent `&mut` functions are forbidden
+    ///   generally, you must ensure it is appropriate to call them here.
+    pub unsafe fn assume_mut(self) -> AutoreleasedMutCell<'a, T> {
+        let r =
+        AutoreleasedMutCell {
+            ptr: NonNull::new_unchecked(self.ptr.as_ptr() as *mut T),
+            marker: Default::default()
+        };
+        std::mem::forget(self);
+        r
+    }
+}
 impl<'a, T: ObjcInstance> std::ops::Deref for AutoreleasedCell<'a, T> {
     type Target = T;
     #[inline] fn deref(&self) -> &T {
@@ -77,7 +97,61 @@ impl<'a, T: ObjcInstance> std::ops::Deref for AutoreleasedCell<'a, T> {
 
 impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedCell<'a, T> where *const T: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.ptr.as_ptr().fmt(f)
+        std::fmt::Display::fmt(&self.ptr.as_ptr(), f)
+    }
+}
+
+/**
+An objc object that is part of an autorelease pool
+
+The pool is used to lexically scope the lifetime of the pointer.
+ */
+#[derive(Debug)]
+pub struct AutoreleasedMutCell<'a, T> {
+    ptr: NonNull<T>,
+    ///for lifetime
+    marker: PhantomData<&'a T>
+}
+
+impl<'a, T: ObjcInstance> AutoreleasedMutCell<'a, T> {
+
+    ///Converts to [Self] by autoreleasing the reference.
+    pub fn autoreleasing(cell: &mut T, _pool: &'a ActiveAutoreleasePool) -> Self {
+        unsafe {
+            objc_autorelease(cell as *const _ as *const c_void)
+        }
+        Self{
+            ptr: unsafe{ NonNull::new_unchecked(cell) },
+            marker: Default::default()
+        }
+    }
+    ///Converts to [Self] by assuming the pointer is already autoreleased.
+    ///
+    /// This is the case for many objc methods, depending on convention.
+    pub unsafe fn assume_autoreleased(ptr: &mut T, _pool: &'a ActiveAutoreleasePool) -> Self {
+        Self {
+            ptr: NonNull::new_unchecked(ptr),
+            marker: PhantomData::default()
+        }
+    }
+}
+
+impl<'a, T: ObjcInstance> std::ops::Deref for AutoreleasedMutCell<'a, T> {
+    type Target = T;
+    #[inline] fn deref(&self) -> &T {
+        unsafe{ &*self.ptr.as_ptr() }
+    }
+}
+impl<'a, T: ObjcInstance> std::ops::DerefMut for AutoreleasedMutCell<'a, T> {
+    #[inline] fn deref_mut(&mut self) -> &mut T {
+        unsafe{ &mut *self.ptr.as_mut() }
+    }
+}
+
+
+impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedMutCell<'a, T> where *const T: std::fmt::Display {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.ptr.fmt(f)
     }
 }
 
@@ -125,17 +199,31 @@ impl<T: ObjcInstance> StrongCell<T> {
     pub fn autoreleasing<'a>(cell: &Self, pool: &'a ActiveAutoreleasePool) -> AutoreleasedCell<'a, T> {
         AutoreleasedCell::autoreleasing(cell, pool)
     }
-
-}
-
-impl<T: ObjcInstance> StrongCell<T> {
     ///Converts to [Self] by assuming the argument is already retained.
     ///
     /// This is usually the case for some objc methods with names like `new`, `copy`, `init`, etc.
     /// # Safety
-    /// If this isn't actually retained, will UB
+    /// You are responsible to check:
+    /// * That the type is retained
+    /// * That the type is 'static, that is, it has no references to external (Rust) memory.
+    ///   If this is not the case, see [StrongLifetimeCell].
     pub unsafe fn assume_retained(reference: &T) -> Self {
         StrongCell(NonNullImmutable::from_reference(reference))
+    }
+
+    ///Converts to a mutable version.
+    ///
+    /// # Safety
+    /// You are responsible to check:
+    /// * There are no other references to the type, mutable or otherwise
+    /// * The type is in fact "mutable", whatever that means.  Specifically, to whatever extent `&mut` functions are forbidden
+    ///   generally, you must ensure it is appropriate to call them here.
+    pub unsafe fn assume_mut(self) -> StrongMutCell<T> {
+        let r = StrongMutCell(
+            NonNull::new_unchecked(self.0.as_ptr() as *mut T),
+        );
+        std::mem::forget(self);
+        r
     }
 }
 
@@ -157,6 +245,127 @@ impl<T: ObjcInstance> std::ops::Deref for StrongCell<T> {
 }
 
 impl<'a, T: ObjcInstance> std::fmt::Display for StrongCell<T> where T: std::fmt::Display {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let ptr = unsafe{ &*(self.0.as_ptr())};
+        f.write_fmt(format_args!("{}",ptr))
+    }
+}
+
+///Like StrongCell, but restricted to a particular lifetime.
+///
+/// This is typically used for objects that borrow some Rust data
+#[derive(Debug)]
+pub struct StrongLifetimeCell<'a, T: ObjcInstance>(NonNullImmutable<T>,PhantomData<&'a ()>);
+impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
+    pub fn retaining(cell: &'a T) -> Self {
+        unsafe {
+            objc_retain(cell as *const T as *const c_void);
+            Self::assume_retained_limited(cell)
+        }
+    }
+
+    ///Converts to [AutoreleasedCell] by calling `autorelease` on `self`.
+    ///
+    ///Safe, but needs to be a moving function, because the StrongCell will not be valid once we
+    /// decrement its reference counter.
+    pub fn autoreleasing<'b: 'a>(cell: &'a Self, pool: &'b ActiveAutoreleasePool) -> AutoreleasedCell<'b, T> {
+        AutoreleasedCell::autoreleasing(cell, pool)
+    }
+    ///Converts to [Self] by assuming the argument is already retained.
+    ///
+    /// This is usually the case for some objc methods with names like `new`, `copy`, `init`, etc.
+    /// # Safety
+    /// You are repsonsible to check:
+    /// * That the type is retained
+    /// * That the type can remain valid for the lifetime specified.  e.g., all "inner pointers" or "borrowed data" involved
+    /// in this object will remain valid for the lifetime specified, which is unbounded.
+    /// * That all objc APIs which end up seeing this pointer will either only access it for the lifetime specified,
+    ///   or will take some other step (usually, copying) the object into a longer lifetime.
+    pub unsafe fn assume_retained_limited(reference: &'a T) -> Self {
+        StrongLifetimeCell(NonNullImmutable::from_reference(reference), PhantomData::default())
+    }
+}
+
+impl<'a, T: ObjcInstance> Drop for StrongLifetimeCell<'a, T> {
+    fn drop(&mut self) {
+        unsafe {
+            if DEBUG_MEMORY {
+                println!("Drop {} {:p}",std::any::type_name::<T>(), self);
+            }
+            objc_release(self.0.as_ptr() as *const _ as *const c_void);
+        }
+    }
+}
+impl<'a, T: ObjcInstance> std::ops::Deref for StrongLifetimeCell<'a, T> {
+    type Target = T;
+    #[inline] fn deref(&self) -> &T {
+        unsafe{ &*self.0.as_ptr()}
+    }
+}
+
+impl<'a, T: ObjcInstance> std::fmt::Display for StrongLifetimeCell<'a, T> where T: std::fmt::Display {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let ptr = unsafe{ &*(self.0.as_ptr())};
+        f.write_fmt(format_args!("{}",ptr))
+    }
+}
+
+///[StrongCell], but mutable
+#[derive(Debug)]
+pub struct StrongMutCell<T: ObjcInstance>(NonNull<T>);
+impl<T: ObjcInstance> StrongMutCell<T> {
+    pub fn retaining(cell: &mut T) -> Self {
+        unsafe {
+            objc_retain(cell as *const T as *const c_void);
+            Self::assume_retained(cell)
+        }
+    }
+
+    ///Converts to [AutoreleasedCell] by calling `autorelease` on `self`.
+    ///
+    ///Safe, but needs to be a moving function, because the StrongCell will not be valid once we
+    /// decrement its reference counter.
+    pub fn autoreleasing<'a>(cell: &mut Self, pool: &'a ActiveAutoreleasePool) -> AutoreleasedMutCell<'a, T> {
+        AutoreleasedMutCell::autoreleasing(cell, pool)
+    }
+
+}
+
+impl<T: ObjcInstance> StrongMutCell<T> {
+    ///Converts to [Self] by assuming the argument is already retained.
+    ///
+    /// This is usually the case for some objc methods with names like `new`, `copy`, `init`, etc.
+    /// # Safety
+    /// If this isn't actually retained, will UB
+    pub unsafe fn assume_retained(reference: &mut T) -> Self {
+        //safe because we're using a reference
+        StrongMutCell(NonNull::new_unchecked(reference))
+    }
+}
+
+impl<T: ObjcInstance> Drop for StrongMutCell<T> {
+    fn drop(&mut self) {
+        unsafe {
+            if DEBUG_MEMORY {
+                println!("Drop {} {:p}",std::any::type_name::<T>(), self);
+            }
+            objc_release(self.0.as_ptr() as *const _ as *const c_void);
+        }
+    }
+}
+impl<T: ObjcInstance> std::ops::Deref for StrongMutCell<T> {
+    type Target = T;
+    #[inline] fn deref(&self) -> &T {
+        unsafe{ &*self.0.as_ptr()}
+    }
+}
+impl<T: ObjcInstance> std::ops::DerefMut for StrongMutCell<T> {
+    #[inline] fn deref_mut(&mut self) -> &mut T {
+        unsafe{ &mut *self.0.as_ptr()}
+    }
+}
+
+impl<'a, T: ObjcInstance> std::fmt::Display for StrongMutCell<T> where T: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let ptr = unsafe{ &*(self.0.as_ptr())};
         f.write_fmt(format_args!("{}",ptr))

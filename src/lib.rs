@@ -162,7 +162,7 @@ pub mod foundation {
 ///This namespace includes items that are appropriate for writing bindings
 pub mod bindings {
     pub use super::autorelease::{ActiveAutoreleasePool,AutoreleasePool};
-    pub use super::objectpointers::{StrongCell,AutoreleasedCell};
+    pub use super::objectpointers::{StrongCell,AutoreleasedCell,StrongMutCell,AutoreleasedMutCell,StrongLifetimeCell};
     pub use super::sel::Sel;
     pub use super::nsobject::NSObjectTrait;
     pub use super::nsobject::NSObject;

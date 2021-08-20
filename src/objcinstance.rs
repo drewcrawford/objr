@@ -1,5 +1,5 @@
 use std::ptr::NonNull;
-use crate::bindings::{StrongCell, AutoreleasedCell};
+use crate::bindings::{StrongCell, AutoreleasedCell, StrongLifetimeCell};
 use crate::autorelease::ActiveAutoreleasePool;
 
 ///Marks that a given type is an objc type, e.g. its instances are an objc object.
@@ -29,8 +29,25 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     /// * Object was retained (+1)
     /// * Object is not deallocated
     /// * Object was initialized
+    /// * Object is 'static, that is, it has no references to external (Rust) memory.
+    /// If this is not the case, see [assume_retained_limited].
     pub unsafe fn assume_retained(self) -> StrongCell<T> {
         StrongCell::assume_retained(self.0.as_ref())
+    }
+
+    ///Assumes the object has been retained and converts to a StrongLifetimeCell.
+    ///
+    /// # Safety
+    /// You must guarantee each of the following:
+    /// * Object was retained (+1)
+    /// * Object is not deallocated
+    /// * Object was initialized
+    /// * That the object can remain valid for the lifetime specified.  e.g., all "inner pointers" or "borrowed data" involved
+    /// in this object will remain valid for the lifetime specified, which is unbounded.
+    /// * That all objc APIs which end up seeing this instance will either only access it for the lifetime specified,
+    ///   or will take some other step (usually, copying) the object into a longer lifetime.
+    pub unsafe fn assume_retained_limited<'a>(self) -> StrongLifetimeCell<'a, T> where T: 'a {
+        StrongLifetimeCell::assume_retained_limited(self.0.as_ref())
     }
     ///Assumes the object has been autoreleased and converts to an AutoreleasedCell.
     ///
