@@ -25,13 +25,10 @@ Distinctive features of this library include:
 use objr::bindings::*;
 objc_class! {
     //Rust wrapper type
-    pub struct NSDate;
-    pub trait NSDateTrait {
+    pub struct NSDate {
         //ObjC class name
         @class(NSDate)
     }
-    //Add support for `new()` onto `Class::<NSDate>::new()`
-    impl NSDateTrait for Class {}
 }
 let pool = AutoreleasePool::new();
 //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing static guarantees you created one.
@@ -48,13 +45,9 @@ Compare this with [[objc_instance!]] for non-class instances.
 use objr::bindings::*;
 objc_class! {
     //Rust wrapper type
-    pub struct NSDate;
-    pub trait NSDateTrait {
-        //ObjC class name
+    pub struct NSDate {
         @class(NSDate)
     }
-    //Add support for NSDate onto our `AnyClass` APIs.
-    impl NSDateTrait for Class {}
 }
 //Declares a group of static selectors.
 objc_selector_group! {
@@ -195,7 +188,7 @@ pub mod bindings {
 
     //used by macros
     #[doc(hidden)]
-    pub use procmacro::{_objc_selector_decl,_objc_selector_impl,_objc_class_decl,_objc_class_impl,__use,__mod};
+    pub use procmacro::{_objc_selector_decl,_objc_selector_impl,__use,__mod};
 }
 
 mod private {

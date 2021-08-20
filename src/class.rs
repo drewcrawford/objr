@@ -113,14 +113,9 @@ impl<T: ObjcClass> std::fmt::Display for Class<T> {
 /// use objr::bindings::*;
 /// objc_class! {
 ///     //Declare a struct with this name, representing our objc class
-///     pub struct Example;
-///     //Declare a trait to implement on Class.
-///     pub trait ExampleClassTrait {
-///         //objc class name
+///     pub struct Example {
 ///         @class(NSObject)
 ///     }
-///     //Implement the trait on Class.  This will let us do `Class::<Example>::new()`
-///     impl ExampleClassTrait for Class {} //implementation will be auto-supplied
 /// }
 /// let pool = AutoreleasePool::new();
 /// let instance = Example::class().alloc_init(&pool);
