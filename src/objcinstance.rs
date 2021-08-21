@@ -84,6 +84,16 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
         self.0.as_ref()
     }
 
+    ///Retains the inner pointer and converts to [StrongCell]
+    ///
+    /// # Safety
+    /// You must guarantee each of the following
+    /// * Object is not deallocated
+    /// * object was initialized
+    pub unsafe fn retain(&self) -> StrongCell<T> {
+        StrongCell::retaining(self.as_ref())
+    }
+
 }
 
 ///Behavior we define for any [ObjcInstance].
@@ -151,18 +161,26 @@ pub trait NullableBehavior {
     ///
     /// # Safety:
     /// You must guarantee each of the following:
-    /// * Object is autoreleased already
-    /// * Object is not deallocated
-    /// * Object was initialized
+    /// * Object (if any) is autoreleased already
+    /// * Object (if any) is not deallocated
+    /// * Object (if any) was initialized
     unsafe fn assume_autoreleased<'a>(self, pool: &'a ActiveAutoreleasePool) -> Option<AutoreleasedCell<'a, Self::T>>;
     ///Assumes the object has been retained and converts to a StrongCell.
     ///
     /// # Safety
     /// You must guarantee each of the following:
     /// * Object was retained (+1)
-    /// * Object is not deallocated
-    /// * Object was initialized
+    /// * Object (if any) is not deallocated
+    /// * Object (if any) was initialized
     unsafe fn assume_retained(self) -> Option<StrongCell<Self::T>>;
+
+    ///Retains the inner pointer and converts to [StrongCell]
+    ///
+    /// # Safety
+    /// You must guarantee each of the following
+    /// * Object (if any) is not deallocated
+    /// * object (if any) was initialized
+    unsafe fn retain(self) -> Option<StrongCell<Self::T>>;
 }
 impl<O: ObjcInstance> NullableBehavior for Option<NonNullImmutable<O>> {
     type T = O;
@@ -173,6 +191,10 @@ impl<O: ObjcInstance> NullableBehavior for Option<NonNullImmutable<O>> {
 
     unsafe fn assume_retained(self) -> Option<StrongCell<Self::T>> {
         self.map(|m| m.assume_retained())
+    }
+
+    unsafe fn retain(self) -> Option<StrongCell<Self::T>> {
+        self.map(|m| m.retain())
     }
 }
 
