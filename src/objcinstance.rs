@@ -105,7 +105,7 @@ pub trait ObjcInstanceBehavior {
     ///
     /// # Safety
     /// There is no guarantee that the source type is compatible with the destination type.
-    unsafe fn cast<R : ObjcInstance>(underlying: *const Self) -> *const R;
+    unsafe fn cast<R : ObjcInstance>(&self) -> &R;
 
     ///Assuming the pointer is non-nil, returns a pointer type.
     ///
@@ -130,8 +130,8 @@ pub trait ObjcInstanceBehavior {
 }
 
 impl<T: ObjcInstance> ObjcInstanceBehavior for T {
-    unsafe fn cast<R: ObjcInstance>(underlying: *const Self) -> *const R {
-        underlying as *const _ as *const R
+    unsafe fn cast<R: ObjcInstance>(&self) -> &R {
+        &*(self as *const _ as *const R)
     }
     unsafe fn assume_nonnil(ptr: *const Self) -> NonNullImmutable<Self> {
         NonNullImmutable(NonNull::new_unchecked(ptr as *mut Self))
