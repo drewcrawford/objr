@@ -250,6 +250,8 @@ impl<'a, T: ObjcInstance> std::fmt::Display for StrongCell<T> where T: std::fmt:
         f.write_fmt(format_args!("{}",ptr))
     }
 }
+//We do it in objc all the time...
+unsafe impl<T: ObjcInstance> Send for StrongCell<T> {}
 
 ///Like StrongCell, but restricted to a particular lifetime.
 ///
