@@ -702,13 +702,13 @@ mod example_dealloc {
 #[test] fn subclass() {
     use objr::bindings::*;
 
-    let pool = AutoreleasePool::new();
+    let pool = unsafe{ AutoreleasePool::new() };
     let _ = example::Example::class().alloc_init(&pool);
 }
 #[test] fn subclass_dealloc() {
     use objr::bindings::*;
     use std::sync::atomic::Ordering;
-    let pool = AutoreleasePool::new();
+    let pool = unsafe{ AutoreleasePool::new() };
     assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == false);
     let _ = example_dealloc::ExampleDealloc::class().alloc_init(&pool);
     //ex dropped here
@@ -718,7 +718,7 @@ mod example_dealloc {
 
 #[test] fn initialize_payload() {
     use objr::bindings::*;
-    let pool = AutoreleasePool::new();
+    let pool = unsafe{ AutoreleasePool::new() };
     let ex = example_payload_methods::ExamplePayloadMethods::class().alloc_init(&pool);
     assert!(*ex.payload() == 5);
 }

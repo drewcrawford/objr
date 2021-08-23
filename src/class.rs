@@ -117,9 +117,11 @@ impl<T: ObjcClass> std::fmt::Display for Class<T> {
 ///         @class(NSObject)
 ///     }
 /// }
-/// let pool = AutoreleasePool::new();
-/// let instance = Example::class().alloc_init(&pool);
-/// let class = Example::class();
+/// autoreleasepool(|pool| {
+///     let instance = Example::class().alloc_init(&pool);
+///     let class = Example::class();
+///    });
+///
 /// ```
 #[macro_export]
 macro_rules! objc_class  {
@@ -148,7 +150,7 @@ fn alloc_ns_object() {
 #[test]
 fn init_ns_object() {
     use crate::autorelease::AutoreleasePool;
-    let pool = AutoreleasePool::new();
+    let pool = unsafe{ AutoreleasePool::new() };
     let class =  NSObject::class();
     let class2 =  NSObject::class();
     assert_eq!(class, class2);

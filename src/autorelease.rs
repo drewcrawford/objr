@@ -21,6 +21,7 @@ extern "C" {
 /// There are two ways to construct this type:
 /// 1.  by dereferencing an [AutoreleasePool] (preferred)
 ///2.   [ActiveAutoreleasePool::assume_autoreleasepool()].
+#[derive(Debug)]
 pub struct ActiveAutoreleasePool {
     ///don't allow anyone else to construct this
     /// !Send !Sync
@@ -46,6 +47,7 @@ impl ActiveAutoreleasePool {
 /// This type can be dereferenced into [ActiveAutoreleasePool].
 ///
 /// Pops the pool on drop.
+#[derive(Debug)]
 pub struct AutoreleasePool {
     // !Send, !Sync
     ptr: *const c_void,
@@ -67,14 +69,21 @@ impl Drop for AutoreleasePool {
     }
 }
 
+pub fn autoreleasepool<F: FnOnce(&ActiveAutoreleasePool) -> R,R>(f: F) -> R {
+    let a = unsafe{ AutoreleasePool::new() };
+    f(&a)
+}
+
 impl AutoreleasePool {
     ///Creates a new pool.  The pool will be dropped when this type is dropped.
-    pub fn new() -> Self {
-        unsafe{
-            AutoreleasePool {
-                ptr: objc_autoreleasePoolPush(),
-                pool: ActiveAutoreleasePool::assume_autoreleasepool()
-            }
+    ///
+    /// # Safety
+    /// Autorelease pools must be dropped in reverse order to when they are created. If you don't want to maintain
+    /// this invariant yourself, see the [autoreleasepool] safe wrapper.
+    pub unsafe fn new() -> Self {
+        AutoreleasePool {
+            ptr: objc_autoreleasePoolPush(),
+            pool: ActiveAutoreleasePool::assume_autoreleasepool()
         }
     }
 }

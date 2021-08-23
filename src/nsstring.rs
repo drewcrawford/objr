@@ -51,17 +51,18 @@ impl NSString {
 }
 
 
+
 #[test] fn from_str() {
 	use crate::autorelease::AutoreleasePool;
 	let example = "example string here";
-	let pool = AutoreleasePool::new();
+	let pool = unsafe{ AutoreleasePool::new() };
 	let nsstring = NSString::with_str_copy(example, &pool);
 	assert_eq!(nsstring.to_str(&pool), example);
 }
 
 #[test] fn static_str() {
 	use crate::autorelease::AutoreleasePool;
-	let pool = AutoreleasePool::new();
+	let pool = unsafe{ AutoreleasePool::new() };
 
 	let test = objc_nsstring!("My example literal");
 	let description = test.description(&pool);

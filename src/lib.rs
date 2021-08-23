@@ -30,11 +30,12 @@ objc_class! {
         @class(NSDate)
     }
 }
-let pool = AutoreleasePool::new();
-//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing static guarantees you created one.
-//Forgetting this is a common ObjC bug.
-let date = NSDate::class().alloc_init(&pool);
-println!("{}",date); // 2021-06-21 19:03:15 +0000
+autoreleasepool(|pool| {
+    //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing static guarantees you created one.
+    //Forgetting this is a common ObjC bug.
+    let date = NSDate::class().alloc_init(&pool);
+    println!("{}",date); // 2021-06-21 19:03:15 +0000
+})
 ```
 
 Compare this with [[objc_instance!]] for non-class instances.
@@ -88,11 +89,13 @@ impl NSDate {
         }
     }
 }
-let pool = AutoreleasePool::new();
-//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
-//Forgetting this is a common ObjC bug.
-let date = NSDate::class().alloc_init(&pool);
-let new_date = date.dateByAddingTimeInterval(&pool, 23.5);
+autoreleasepool(|pool| {
+    //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
+    //Forgetting this is a common ObjC bug.
+    let date = NSDate::class().alloc_init(&pool);
+    let new_date = date.dateByAddingTimeInterval(&pool, 23.5);
+})
+
 ```
 
 For more examples, see the documentation for [objc_instance!].
@@ -156,6 +159,7 @@ pub mod foundation {
     pub use super::class::ObjcClass;
     pub use super::nserror::{NSError};
     pub use procmacro::objc_nsstring;
+    pub use super::autorelease::autoreleasepool;
 
 }
 

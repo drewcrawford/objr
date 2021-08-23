@@ -260,7 +260,7 @@ fn perform_super() {
             @class(NSNull)
         }
     }
-    let pool = AutoreleasePool::new();
+    let pool = unsafe{ AutoreleasePool::new() };
 
     let o = NSNull::class().alloc_init(&pool);
 

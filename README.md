@@ -29,11 +29,12 @@ objc_class! {
         @class(NSDate)
     }
 }
-let pool = AutoreleasePool::new();
-//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing static guarantees you created one.
-//Forgetting this is a common ObjC bug.
-let date = NSDate::class().alloc_init(&pool);
-println!("{}",date); // 2021-06-21 19:03:15 +0000
+autoreleasepool(|pool| {
+  //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing static guarantees you created one.
+  //Forgetting this is a common ObjC bug.
+  let date = NSDate::class().alloc_init(&pool);
+  println!("{}",date); // 2021-06-21 19:03:15 +0000
+})
 ```
 
 Compare this with `objc_instance!` for non-class instances.
@@ -59,39 +60,40 @@ objc_selector_group! {
 
 //Declare APIs directly on our `NSDate` wrapper type
 impl NSDate {
-  fn dateByAddingTimeInterval(&self, pool: &ActiveAutoreleasePool, interval: f64)
-  //Although the underlying ObjC API returns a +0 unowned reference,
-  //We create a binding that returns +1 retained instead.  We might do this
-  //because it's the preferred pattern of our application.
-  //For more details, see the documentation of [objc_instance!]
-                              -> StrongCell<NSDate> {
-    //Use of ObjC is unsafe.  There is no runtime or dynamic checking of your work here,
-    //so you must provide a safe abstraction to callers (or mark the enclosing function unsafe).
-    unsafe {
-      /*Convert from an autoreleased return value to a strong one.
-      This uses tricks used by real ObjC compilers and is far faster than calling `retain` yourself.
-      */
-      let raw = Self::perform_autorelease_to_retain(
-        //the objc method we are calling does not mutate the receiver
-        self.assume_nonmut_perform(),
-        ///Use the compile-time selector we declared above
-        Sel::dateByAddingTimeInterval_(),
-        ///Static checking that we have an autoreleasepool available
-        pool,
-        ///Arguments.  Note the trailing `,`.  Arguments are tuple types.
-        (interval,));
-      //assume the result is nonnil
-      Self::assume_nonnil(raw)
-              //assume the object is +1 convention (it is, because we called perform_autorelease_to_retain above)
-              .assume_retained()
+    fn dateByAddingTimeInterval(&self, pool: &ActiveAutoreleasePool, interval: f64)
+    //Although the underlying ObjC API returns a +0 unowned reference,
+    //We create a binding that returns +1 retained instead.  We might do this
+    //because it's the preferred pattern of our application.
+    //For more details, see the documentation of [objc_instance!]
+    -> StrongCell<NSDate> {
+        //Use of ObjC is unsafe.  There is no runtime or dynamic checking of your work here,
+        //so you must provide a safe abstraction to callers (or mark the enclosing function unsafe).
+        unsafe {
+            /*Convert from an autoreleased return value to a strong one.
+            This uses tricks used by real ObjC compilers and is far faster than calling `retain` yourself.
+            */
+            let raw = Self::perform_autorelease_to_retain(
+                //the objc method we are calling does not mutate the receiver
+                self.assume_nonmut_perform(),
+                ///Use the compile-time selector we declared above
+                Sel::dateByAddingTimeInterval_(),
+                ///Static checking that we have an autoreleasepool available
+                 pool,
+                 ///Arguments.  Note the trailing `,`.  Arguments are tuple types.
+                 (interval,));
+            //assume the result is nonnil
+            Self::assume_nonnil(raw)
+            //assume the object is +1 convention (it is, because we called perform_autorelease_to_retain above)
+                .assume_retained()
+        }
     }
-  }
 }
-let pool = AutoreleasePool::new();
-//In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
-//Forgetting this is a common ObjC bug.
-let date = NSDate::class().alloc_init(&pool);
-let new_date = date.dateByAddingTimeInterval(&pool, 23.5);
+autoreleasepool(|pool| {
+    //In this library, autoreleasepools are often arguments to ObjC-calling APIs, providing compile-time guarantees you created one.
+    //Forgetting this is a common ObjC bug.
+    let date = NSDate::class().alloc_init(&pool);
+    let new_date = date.dateByAddingTimeInterval(&pool, 23.5);
+})
 ```
 
 For more examples, see the documentation for `objc_instance!`.
