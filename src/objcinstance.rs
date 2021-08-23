@@ -181,6 +181,19 @@ pub trait NullableBehavior {
     /// * Object (if any) is not deallocated
     /// * object (if any) was initialized
     unsafe fn retain(self) -> Option<StrongCell<Self::T>>;
+
+    ///Assumes the object has been retained and converts to a StrongLifetimeCell.
+    ///
+    /// # Safety
+    /// You must guarantee each of the following:
+    /// * Object (if any) was retained (+1)
+    /// * Object (if any) is not deallocated
+    /// * Object (if any) was initialized
+    /// * That the object (if any) can remain valid for the lifetime specified.  e.g., all "inner pointers" or "borrowed data" involved
+    /// in this object will remain valid for the lifetime specified, which is unbounded.
+    /// * That all objc APIs which end up seeing this instance will either only access it for the lifetime specified,
+    ///   or will take some other step (usually, copying) the object into a longer lifetime.
+    unsafe fn assume_retained_limited<'a>(self) -> Option<StrongLifetimeCell<'a, Self::T>> where Self::T: 'a;
 }
 impl<O: ObjcInstance> NullableBehavior for Option<NonNullImmutable<O>> {
     type T = O;
@@ -195,6 +208,9 @@ impl<O: ObjcInstance> NullableBehavior for Option<NonNullImmutable<O>> {
 
     unsafe fn retain(self) -> Option<StrongCell<Self::T>> {
         self.map(|m| m.retain())
+    }
+    unsafe fn assume_retained_limited<'a>(self) -> Option<StrongLifetimeCell<'a, Self::T>> where Self::T: 'a {
+        self.map(|m| m.assume_retained_limited())
     }
 }
 

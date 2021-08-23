@@ -23,6 +23,7 @@ objc_selector_group!(
             @selector("init")
             @selector("conformsToProtocol:")
             @selector("dealloc")
+            @selector("copy")
         }
         impl NSObjectSelectors for Sel {}
     );
@@ -30,10 +31,12 @@ objc_selector_group!(
 ///Trait for NSObject.  This will be autoimplemented by all [ObjcInstance].
 ///
 /// This type provides bindings to common `NSObject` functions.
-pub trait NSObjectTrait {
+pub trait NSObjectTrait: Sized + ObjcInstance {
     fn description<'a>(&self, pool: &ActiveAutoreleasePool) -> StrongCell<NSString>;
     //objc_method_declaration!{autoreleased fn description() -> NSString; }
     fn responds_to_selector(&self, pool: &ActiveAutoreleasePool, sel: Sel) -> bool;
+
+    fn copy(&self, pool: &ActiveAutoreleasePool) -> StrongCell<Self>;
 
     ///Calls `[instance init]`.;
     unsafe fn init(receiver: *mut *mut Self, pool: &ActiveAutoreleasePool);
@@ -49,6 +52,12 @@ impl<T: ObjcInstance> NSObjectTrait for T {
     fn responds_to_selector(&self, pool: &ActiveAutoreleasePool, sel: Sel) -> bool {
         unsafe {
             Self::perform_primitive(self.assume_nonmut_perform(), Sel::respondsToSelector_(), pool, (sel,))
+        }
+    }
+    fn copy(&self, pool: &ActiveAutoreleasePool) -> StrongCell<Self> {
+        unsafe {
+            let r = Self::perform(self.assume_nonmut_perform(), Sel::copy(), pool, ());
+            Self::assume_nonnil(r).assume_retained()
         }
     }
     ///Initializes the object by calling `[self init]`
