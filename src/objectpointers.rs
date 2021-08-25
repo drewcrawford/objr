@@ -345,6 +345,9 @@ impl<T: ObjcInstance> StrongMutCell<T> {
     }
 }
 
+///we send in objc all the time
+unsafe impl<T: ObjcInstance> Send for StrongMutCell<T>  {}
+
 impl<T: ObjcInstance> Drop for StrongMutCell<T> {
     fn drop(&mut self) {
         unsafe {
