@@ -35,8 +35,8 @@ impl ActiveAutoreleasePool {
     /// # Safety
     /// This is generally unsafe, but if you are certain an autoreleasepool is active on the thread,
     /// you can use this constructor to create your own marker tpe.
-    pub unsafe fn assume_autoreleasepool() -> ActiveAutoreleasePool {
-        ActiveAutoreleasePool {_marker: PhantomData::default() }
+    pub const unsafe fn assume_autoreleasepool() -> ActiveAutoreleasePool {
+        ActiveAutoreleasePool {_marker: PhantomData }
     }
 }
 ///Tracks an active autoreleasepool.
