@@ -40,6 +40,8 @@ pub trait NSObjectTrait: Sized + ObjcInstance {
 
     ///Calls `[instance init]`.;
     unsafe fn init(receiver: *mut *mut Self, pool: &ActiveAutoreleasePool);
+    ///erases type to NSObject
+    fn as_nsobject(&self) -> &NSObject;
 }
 //"description" will not work unless CoreFoundation is linked
 impl<T: ObjcInstance> NSObjectTrait for T {
@@ -69,6 +71,10 @@ impl<T: ObjcInstance> NSObjectTrait for T {
         //upcast return type to mutable since it matches the argument
         let ptr = (Self::perform(*receiver,Sel::init(), pool, ())) as *const T as *mut T;
         *receiver = ptr;
+    }
+
+    fn as_nsobject(&self) -> &NSObject {
+        unsafe {&* (self as *const Self as *const NSObject)}
     }
 }
 objc_class! {

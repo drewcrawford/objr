@@ -56,8 +56,11 @@ pub trait Arguments: Sized + Debug + crate::private::Sealed {
 /// This constraint provides additional safety around transmuting fp types.
 ///
 /// # Safety
-/// The primary constraint of this protocol is it needs to be `#[repr(transparent)]`.
+/// The primary constraint of this protocol is it needs to be FFI-safe (`#[repr(transparent)]` or `#[repr(C)]`).
 /// Since this cannot be otherwise verified, we're going to declare it `unsafe`.
+/// # See also
+/// [Primitive], which implies this trait. The difference is that [Arguable] does not allow the [PerformsSelector::perform_primitive()]
+/// family in its return type.
 pub unsafe trait Arguable  {}
 
 unsafe impl<O: ObjcInstance> Arguable for &O {}
@@ -68,11 +71,14 @@ unsafe impl<O: ObjcInstance> Arguable for *const O {}
 /// allows access to the [PerformsSelector::perform_primitive()] family.
 ///
 /// # Safety
-/// We autoimplement `Arguable` for this type.  This implies that the type must be #[repr(transparent)]
-/// e.g., ffi-safe.
+/// Type must be FFI-safe.
 ///
 /// # Note
 /// This is unsealed because we want to allow structs to be declared as primitives in external crates.
+///
+/// # See also
+/// [Arguable], which is implied by this trait.  The difference is that [Primitive] allows [PerformsSelector::perform_primitive()]
+/// family in its return type.
 pub unsafe trait Primitive: Arguable {}
 
 
