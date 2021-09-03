@@ -37,7 +37,7 @@ macro_rules! objc_enum {
         #[allow(non_upper_case_globals)]
         impl $enum {
            $($pub const $a: $enum = $enum($b);)*
-           $pub fn field(&self) -> $type { self.0 }
+           $pub const fn field(&self) -> $type { self.0 }
         }
 
     )
