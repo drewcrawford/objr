@@ -160,6 +160,7 @@ pub mod foundation {
     pub use super::nserror::{NSError};
     pub use procmacro::objc_nsstring;
     pub use super::autorelease::autoreleasepool;
+    pub use super::bindings::ObjcInstanceBehavior;
 
 }
 
