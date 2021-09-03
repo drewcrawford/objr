@@ -214,6 +214,26 @@ impl<O: ObjcInstance> NullableBehavior for Option<NonNullImmutable<O>> {
     }
 }
 
+///Helper for Option<StrongCell>
+pub trait NullableCellBehavior {
+    type T: ObjcInstance;
+    ///Converts to a mutable version.
+    ///
+    /// # Safety
+    /// You are responsible to check:
+    /// * There are no other references to the type, mutable or otherwise
+    /// * The type is in fact "mutable", whatever that means.  Specifically, to whatever extent `&mut` functions are forbidden
+    ///   generally, you must ensure it is appropriate to call them here.
+    unsafe fn assume_mut(self) -> Option<StrongMutCell<Self::T>>;
+}
+impl<O: ObjcInstance> NullableCellBehavior for Option<StrongCell<O>> {
+    type T = O;
+
+    unsafe fn assume_mut(self) -> Option<StrongMutCell<Self::T>> {
+        self.map(|p| p.assume_mut())
+    }
+}
+
 /**
 Defines a struct (binding) for a specific ObjC type.  This doesn't assume the type is a class, if it is a class consider [objc_class!].
 

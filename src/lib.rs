@@ -175,6 +175,7 @@ pub mod bindings {
     pub use super::performselector::{PerformsSelector,PerformablePointer,PerformsSelectorSuper};
     pub use super::class::{Class};
     pub use super::foundation::*;
+    pub use objr::objcinstance::NullableCellBehavior;
     //import macros
     pub use crate::objc_instance;
     pub use crate::objc_class;
