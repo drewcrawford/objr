@@ -13,7 +13,7 @@ Distinctive features of this library include:
 * Low level, ObjC-like APIs that you can build on to expose a Rusty interface – or not, for extra control and performance
 * Minimal API coverage, leaving the question of which APIs to use and how to expose them to Rust for other crates
 * Focus on modern, Apple-platform ObjC
-* Free for noncommercial use
+* Free for noncommercial and "small commercial" use.
 
 # Detailed general examples
 
