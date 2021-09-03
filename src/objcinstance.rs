@@ -1,5 +1,5 @@
 use std::ptr::NonNull;
-use crate::bindings::{StrongCell, AutoreleasedCell, StrongLifetimeCell};
+use crate::bindings::{StrongCell, AutoreleasedCell, StrongLifetimeCell, StrongMutCell};
 use crate::autorelease::ActiveAutoreleasePool;
 
 ///Marks that a given type is an objc type, e.g. its instances are an objc object.
@@ -101,11 +101,17 @@ pub trait ObjcInstanceBehavior {
 
     ///Casts the type to another type.
     ///
-    /// In practice this is often combined with `unsafe_clone`.
-    ///
     /// # Safety
     /// There is no guarantee that the source type is compatible with the destination type.
     unsafe fn cast<R : ObjcInstance>(&self) -> &R;
+
+    ///Casts the type to another type.
+    ///
+    /// # Safety
+    /// There is no guarantee that the source type is compatible with the destination type.
+    /// To the extent that you create two pointers pointing to the same instance,
+    /// this may be UB
+    unsafe fn cast_mut<R: ObjcInstance>(&mut self) -> &mut R;
 
     ///Assuming the pointer is non-nil, returns a pointer type.
     ///
@@ -133,6 +139,9 @@ impl<T: ObjcInstance> ObjcInstanceBehavior for T {
     unsafe fn cast<R: ObjcInstance>(&self) -> &R {
         &*(self as *const _ as *const R)
     }
+    unsafe fn cast_mut<R: ObjcInstance>(&mut self) -> &mut R {
+        &mut *(self as *mut _ as *mut R)
+    }
     unsafe fn assume_nonnil(ptr: *const Self) -> NonNullImmutable<Self> {
         NonNullImmutable(NonNull::new_unchecked(ptr as *mut Self))
     }
@@ -154,7 +163,6 @@ impl<T: ObjcInstance> ObjcInstanceBehavior for T {
 }
 
 ///Helper for Option<NonNullable>
-
 pub trait NullableBehavior {
     type T: ObjcInstance;
     ///Assumes the object has been autoreleased and converts to an Option<AutoreleasedCell>
