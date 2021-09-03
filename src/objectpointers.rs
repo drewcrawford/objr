@@ -22,7 +22,7 @@ use crate::bindings::{ActiveAutoreleasePool,ObjcInstance};
 use std::marker::PhantomData;
 use crate::objcinstance::NonNullImmutable;
 use std::ptr::NonNull;
-use std::fmt::Debug;
+use std::fmt::{Debug};
 
 ///Turning this on may help debug retain/release
 const DEBUG_MEMORY: bool = false;
@@ -95,9 +95,10 @@ impl<'a, T: ObjcInstance> std::ops::Deref for AutoreleasedCell<'a, T> {
 }
 
 
-impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedCell<'a, T> where *const T: std::fmt::Display {
+impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedCell<'a, T> where T: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.ptr.as_ptr(), f)
+        let ptr = unsafe{ &*self.ptr.as_ptr() };
+        std::fmt::Display::fmt(ptr, f)
     }
 }
 
@@ -149,9 +150,10 @@ impl<'a, T: ObjcInstance> std::ops::DerefMut for AutoreleasedMutCell<'a, T> {
 }
 
 
-impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedMutCell<'a, T> where *const T: std::fmt::Display {
+impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedMutCell<'a, T> where T: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.ptr.fmt(f)
+        let ptr = unsafe{ &*self.ptr.as_ptr() };
+        f.write_fmt(format_args!("{}",ptr))
     }
 }
 
