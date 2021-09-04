@@ -24,6 +24,10 @@ use crate::objcinstance::NonNullImmutable;
 use std::ptr::NonNull;
 use std::fmt::{Debug};
 
+extern "C" {
+    fn objc_autoreleaseReturnValue(object: *const c_void) -> *const c_void;
+}
+
 ///Turning this on may help debug retain/release
 const DEBUG_MEMORY: bool = false;
 
@@ -227,6 +231,17 @@ impl<T: ObjcInstance> StrongCell<T> {
         std::mem::forget(self);
         r
     }
+    ///Attempts to use the "trampoline" trick to return an autoreleased value to objc.
+    ///
+    /// This is largely used when implementing a subclass.
+    ///
+    ///You must return the return value of this function, to your caller to get optimized results.
+    /// Results are not guaranteed to be optimized, in part because inline assembly is not stabilized.
+    #[inline(always)] pub fn return_autoreleased(self) -> *const T {
+        let ptr = self.0.as_ptr();
+        std::mem::forget(self); //LEAK
+        unsafe{ objc_autoreleaseReturnValue(ptr as *const c_void) as *const T }
+    }
 }
 
 impl<T: ObjcInstance> Drop for StrongCell<T> {
@@ -344,6 +359,18 @@ impl<T: ObjcInstance> StrongMutCell<T> {
     pub unsafe fn assume_retained(reference: &mut T) -> Self {
         //safe because we're using a reference
         StrongMutCell(NonNull::new_unchecked(reference))
+    }
+
+    ///Attempts to use the "trampoline" trick to return an autoreleased value to objc.
+    ///
+    /// This is largely used when implementing a subclass.
+    ///
+    /// You must return the return value of this function, to your caller to get optimized results.
+    /// Results are not guaranteed to be optimized, in part because inline assembly is not stabilized.
+    #[inline(always)] pub fn return_autoreleased(self) -> *mut T {
+        let ptr = self.0.as_ptr();
+        std::mem::forget(self); //LEAK
+        unsafe{ objc_autoreleaseReturnValue(ptr as *const c_void) as *const T as *mut T }
     }
 }
 

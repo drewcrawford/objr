@@ -458,6 +458,14 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 /// }
 /// ```
 ///
+/// ## Returning values
+///
+/// In general, if you're implementing a method of +1 (that is, retain/strong) convention, you need to return a retained value.
+/// This means you must use [std::mem::forget] on a StrongCell.
+///
+/// Alternatively, if you're implementing a method of +0 (that is, autorelease) convention, you need to return an autoreleased value.
+/// While you can create an [objr::bindings::AutoreleasedCell] yourself, the best strategy is usually to return [objr::bindings::StrongCell::return_autoreleased()].
+///
 /// ## Dealloc
 ///
 /// You can supply an implementation of dealloc in order to roll your own 'drop' behavior.
