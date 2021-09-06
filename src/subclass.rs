@@ -1,4 +1,5 @@
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_sublcass_implpart_method_prelude {
     ($MethodT:ident,$MethodListT:ident) => {
         #[repr(C)]
@@ -23,6 +24,7 @@ macro_rules! __objc_sublcass_implpart_method_prelude {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_implpart_a {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     //these ivars are imported from external scope to achieve macro hygiene
@@ -141,6 +143,7 @@ macro_rules! __objc_subclass_implpart_a {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_implpart_class_ro {
     ($objcname:ident,
         $CLASS_RO:ident,$ClassRoT:ident,$CLASS_FLAGS:expr,$payload:ty,$CLASS_NAME:expr,$IVARLISTEXPR:expr,$METHODLISTEXPR:expr) => {
@@ -168,6 +171,7 @@ macro_rules! __objc_subclass_implpart_class_ro {
 
 ///Declares a method list
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_implpart_method_list {
     (
         $objcname:ident,
@@ -213,6 +217,7 @@ macro_rules! __objc_subclass_implpart_method_list {
 }
 ///Declares an ivarlist (e.g., payload variants)
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_implpart_ivar_list {
     ($objcname: ident, $payloadtype:ty, $FRAGILE_BASE_CLASS_OFFSET: ident, $IVAR_LIST:ident) => {
         objr::bindings::__static_asciiz!("__TEXT,__objc_methname,cstring_literals",IVAR_NAME,"payload");
@@ -246,6 +251,7 @@ macro_rules! __objc_subclass_implpart_ivar_list {
 ///This macro implements some methods on the wrapper type
 ///to access the underlying payload.
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_impl_payload_access {
     ($pub:vis, $identifier:ident,$payload:ty, $FRAGILE_BASE_CLASS_OFFSET:ident) => {
         impl $identifier {
@@ -284,6 +290,7 @@ macro_rules! __objc_subclass_impl_payload_access {
     }
 }
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_implpart_finalize {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     //these are imported into our scope
@@ -321,6 +328,7 @@ macro_rules! __objc_subclass_implpart_finalize {
 
 ///Emits the subclass impl in the case have a payload
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_impl_with_payload_no_methods {
     (
     $pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,$payload:ty
@@ -341,6 +349,7 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
     }
 }
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_impl_no_payload_no_methods {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident) => {
                 objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
@@ -360,6 +369,7 @@ macro_rules! __objc_subclass_impl_no_payload_no_methods {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __objc_subclass_impl_no_payload_with_methods {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     [ $($objcmethod:literal => $methodfn:expr $(,)* )+ ]
@@ -385,6 +395,8 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
 
 ///Variant with payload and methods
 #[macro_export]
+#[doc(hidden)]
+
 macro_rules! __objc_subclass_impl_with_payload_with_methods {
 ($pub: vis, $identifier:ident,$objcname:ident,$superclass:ident,$payload:ty, [$($objcmethod:literal => $methodfn:expr $(,)* )+ ]) =>
     {
