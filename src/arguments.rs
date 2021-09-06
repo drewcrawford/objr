@@ -4,7 +4,6 @@
 
 use super::bindings::*;
 use std::ffi::c_void;
-use std::os::raw::c_char;
 use std::fmt::Debug;
 
 #[link(name="objc", kind="dylib")]
@@ -103,9 +102,13 @@ unsafe impl Arguable for () {}
 
 unsafe impl Primitive for u64{}
 unsafe impl Arguable for u64{}
+unsafe impl Primitive for u32{}
+unsafe impl Arguable for u32{}
+unsafe impl Primitive for u16{}
+unsafe impl Arguable for u16{}
+unsafe impl Primitive for u8{}
+unsafe impl Arguable for u8{}
 
-unsafe impl Primitive for c_char {}
-unsafe impl Arguable for c_char {}
 
 unsafe impl Primitive for *const u8 {}
 unsafe impl Arguable for *const u8 {}
@@ -115,8 +118,12 @@ unsafe impl Arguable for *const i8 {}
 
 unsafe impl Arguable for i64 {}
 unsafe impl Primitive for i64 {}
-
-
+unsafe impl Arguable for i32 {}
+unsafe impl Primitive for i32 {}
+unsafe impl Arguable for i16 {}
+unsafe impl Primitive for i16 {}
+unsafe impl Arguable for i8 {}
+unsafe impl Primitive for i8 {}
 
 ///Implementation macro for declaring [Argument] types.
 macro_rules! arguments_impl {
