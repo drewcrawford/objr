@@ -696,7 +696,15 @@ pub fn __use(stream: TokenStream) -> TokenStream {
     let mut iter = stream.into_iter();
     let mut item1 = match parse_ident(&mut iter) {
         Ok(l) => {l}
-        o => { return error(&format!("Expected first ident part, {:?}",o))}
+        _ => {
+            //In case the what's here is something like $pub, but empty, o will be something like an empty group.
+            //In that case, look ahead at the next token
+            match parse_ident(&mut iter) {
+                Ok(l) => l,
+                o=> return error(&format!("Expected first ident part, {:?}",o))
+            }
+
+        }
     };
     let is_pub;
     if item1.to_string() == "pub" {
