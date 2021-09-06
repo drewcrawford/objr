@@ -348,6 +348,15 @@ impl<T: ObjcInstance> StrongMutCell<T> {
         AutoreleasedMutCell::autoreleasing(cell, pool)
     }
 
+    ///Converts to [StrongCell], e.g. dropping the mutable portion.
+    ///
+    /// This consumes the cell, e.g. you can't have an exclusive and nonexclusive reference to the same object.
+    pub fn as_const(self) -> StrongCell<T> {
+        let r: StrongCell<T> = unsafe{ StrongCell::assume_retained(&self) };
+        std::mem::forget(self);
+        r
+    }
+
 }
 
 impl<T: ObjcInstance> StrongMutCell<T> {
