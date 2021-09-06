@@ -81,7 +81,7 @@ macro_rules! objc_selector_group {
                 objr::bindings::_objc_selector_decl!{$selector}
             )*
         }
-        impl $trait for Sel {
+        impl $trait for objr::bindings::Sel {
             $(
                 objr::bindings::_objc_selector_impl!{$selector}
             )*
