@@ -423,6 +423,14 @@ Having exceptions as UB is a bit scary.  Once again though, we are following in 
 similar.  Unfortunately, Swift is better at wringing a proper error message out of the exception, even though it isn't totally
 reliable either.
 
+# Generic types
+Both ObjC and Rust support generics, which are vaguely similar concepts.  However, ObjC's notion of generics is highly 'bolted
+on top': it serves as a compile-time assertion that some function accepts or returns a particular type, but it does not
+actually constrain the runtime behavior, not does specialization create a distinct type.
+
+The best way to project this in Rust is to project the "bolted on top" model.  Therefore (and also for technical reasons), this
+macro does not accept generic arguments, but [objc_instance_newtype] does.
+
  */
 #[macro_export]
 macro_rules! objc_instance  {
@@ -442,6 +450,70 @@ macro_rules! objc_instance  {
         });
         ::objr::bindings::__use!($pub no_construct,$objctype,$objctype);
     };
+}
+
+/**
+Declares a newtype that wraps an existing objc instance type.
+
+Downcasts to the raw type will be implemented for you.  Upcasts will not, implement them yourself with [objr::bindings::ObjcInstanceBehavior::cast()] if applicable.
+```no_run
+use objr::bindings::*;
+objc_instance! {
+    struct NSExample;
+}
+objc_instance_newtype! {
+    struct SecondExample: NSExample;
+}
+let s: &SecondExample = todo!();
+let e: &NSExample = s.into();
+
+let s: &mut SecondExample = todo!();
+let e: &mut NSExample = s.into();
+```
+
+unlike [objc_instance!], this macro supports generic types, allowing you to wrap some other type with generics bolted on top.
+
+At the moment, restrictions on generic arguments are not supported at the type level, but you can add them on your own impl blocks
+
+```
+use objr::bindings::*;
+objc_instance! {
+    struct NSExample;
+}
+objc_instance_newtype! {
+    struct SecondExample<A,B>: NSExample;
+}
+//further restriction
+impl<A: PartialEq,B: PartialEq> SecondExample<A,B> { }
+```
+*/
+#[macro_export]
+macro_rules! objc_instance_newtype {
+    (
+        $(#[$attribute:meta])*
+        $pub:vis
+        struct $newtype:ident $(<$($T:ident),+>)? : $oldtype:ident;
+    ) => {
+        ::objr::bindings::__mod!(no_construct,$newtype, {
+            $(#[$attribute])*
+            #[repr(transparent)]
+            #[derive(Debug)]
+            pub struct $newtype$(<$($T),+>)? (core::ffi::c_void, $($(std::marker::PhantomData<$T>),+)? );
+        });
+        ::objr::bindings::__use!($pub no_construct,$newtype,$newtype);
+        impl $(<$($T),+>)? ObjcInstance for $newtype $(<$($T),+>)? {}
+        impl<'a,$($($T),*)?> From<&'a $newtype $(<$($T),+>)? > for &'a $oldtype {
+            fn from(f: &'a $newtype $(<$($T),+>)?) -> &'a $oldtype {
+                unsafe{ f.cast() }
+            }
+        }
+        impl<'a,$($($T),*)?> From<&'a mut $newtype $(<$($T),+>)? > for &'a mut $oldtype {
+            fn from(f: & 'a mut $newtype $(<$($T),+>)?) -> &'a mut $oldtype {
+                unsafe{ f.cast_mut() }
+            }
+        }
+
+    }
 }
 
 

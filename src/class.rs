@@ -18,6 +18,12 @@ extern "C" {
 #[repr(transparent)]
 pub struct AnyClass(c_void);
 
+impl PartialEq for AnyClass {
+    fn eq(&self, other: &Self) -> bool {
+        (self as *const Self) == (other as *const Self)
+    }
+}
+
 ///A trait for Rust types that map to ObjC classes.
 ///
 /// This is similar to [ObjcInstance] (and requires it) but imposes additional class requirements.
@@ -123,6 +129,8 @@ impl<T: ObjcClass> std::fmt::Display for Class<T> {
 ///    });
 ///
 /// ```
+///
+/// This version does not support generics, to declare a wrapper type (that can be generic), see [objc_class_newtype!]
 #[macro_export]
 macro_rules! objc_class  {
     (
@@ -138,6 +146,88 @@ macro_rules! objc_class  {
         }
         ::objr::bindings::__objc_implement_class!{$objctype,$objcname}
     };
+}
+
+/**
+Declares a newtype that wraps an existing [objc_class].
+
+See also:
+* [objc_class].  The oldtype must be declared with this macro.
+* [objc_instance_newtype], the equivalent macro for [objc_instance].
+
+Downcasts to the raw type will be implemented for you.  Upcasts will not, implement them yourself with [objr::bindings::ObjcInstanceBehavior::cast()] if applicable.
+
+```no_run
+use objr::bindings::*;
+objc_class! {
+    struct NSObject {
+        @class(NSObject)
+    }
+}
+objc_class_newtype! {
+    struct NSSecondObject: NSObject;
+}
+let s: &NSSecondObject = todo!();
+let e: &NSObject = s.into();
+
+let s: &mut NSSecondObject = todo!();
+let e: &mut NSObject = s.into();
+```
+
+unlike [objc_class!], this macro supports generic types, allowing you to wrap some other type with generics bolted on top.
+
+At the moment, restrictions on generic arguments are not supported at the type level, but you can add them on your own impl blocks
+```
+use objr::bindings::*;
+objc_class! {
+    struct NSObject { @class(NSObject) }
+}
+objc_class_newtype! {
+    struct SecondObject<A,B>: NSObject;
+}
+//further restriction
+impl<A: PartialEq,B: PartialEq> SecondObject<A,B> { }
+```
+
+Although newtypes declared with this macro conform to ObjcClass, keep in mind that their newtypeness is a Rust construct,
+and is not visible to ObjC:
+
+```
+use objr::bindings::*;
+objc_class_newtype! {
+    struct NotNSObject: NSObject;
+}
+fn static_assert_isclass<T: ObjcClass>(t: &T) {}
+
+autoreleasepool(|pool| {
+    //create a plain old NSObject
+    let oldtype = NSObject::class().alloc_init(pool);
+    //upgrade it to newtype
+    let newtype: &NotNSObject = unsafe{ oldtype.cast() };
+    //confirm newtype conforms to ObjcClass
+    static_assert_isclass(newtype);
+    //however, it isn't a distinct class.  It was NSObject the whole time!
+    assert_eq!(NSObject::class().as_anyclass(),NotNSObject::class().as_anyclass())
+})
+```
+*/
+#[macro_export]
+macro_rules! objc_class_newtype {
+     (
+        $(#[$attribute:meta])*
+        $pub:vis
+        struct $newtype:ident $(<$($T:ident),+>)? : $oldtype:ident;
+    ) => {
+         ::objr::bindings::objc_instance_newtype! {
+            $(#[$attribute])*
+            $pub struct $newtype $(<$($T),+>)?: $oldtype;
+        }
+         impl $(<$($T),+>)? objr::bindings::ObjcClass for $newtype $(<$($T),+>)? {
+            fn class() -> &'static Class<Self> {
+                unsafe{ std::mem::transmute($oldtype::class()) }
+            }
+         }
+     }
 }
 
 
