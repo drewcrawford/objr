@@ -1,5 +1,5 @@
-# Drew's very fast objc library
-This library provides low-level bindings to ObjC, which is in practice the ABI for macOS.  You might compare
+# Drew's very fast objc Rust bindings
+This library provides low-level Rust bindings for ObjC, which is in practice the ABI for macOS.  You might compare
 this crate with [objc](https://crates.io/crates/objc), [fruity](https://docs.rs/fruity/0.2.0/fruity/), [objcrs](https://crates.io/crates/objrs)
 and many others.
 

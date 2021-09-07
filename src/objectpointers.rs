@@ -244,6 +244,11 @@ impl<T: ObjcInstance> StrongCell<T> {
     }
 }
 
+impl<T: ObjcInstance> Clone for StrongCell<T> {
+    fn clone(&self) -> Self {
+        StrongCell::retaining(&self)
+    }
+}
 impl<T: ObjcInstance> Drop for StrongCell<T> {
     fn drop(&mut self) {
         unsafe {
@@ -269,6 +274,9 @@ impl<'a, T: ObjcInstance> std::fmt::Display for StrongCell<T> where T: std::fmt:
 }
 //We do it in objc all the time...
 unsafe impl<T: ObjcInstance> Send for StrongCell<T> {}
+
+//If the underlying objc instance is sync, so are we...
+unsafe impl<T: ObjcInstance + Sync> Sync for StrongCell<T> {}
 
 ///Like StrongCell, but restricted to a particular lifetime.
 ///
