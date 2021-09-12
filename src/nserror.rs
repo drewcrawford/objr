@@ -22,3 +22,14 @@ impl<T> ResultNSError<T> for Result<T,AutoreleasedCell<'_, NSError>> {
         }
     }
 }
+
+impl<T> ResultNSError<T> for Result<T,StrongCell<NSError>> {
+    fn unwrap_nserror(self, pool: &ActiveAutoreleasePool) -> T {
+        match self {
+            Ok(t) => { t}
+            Err(e) => {
+                panic!("{}",e.description(pool))
+            }
+        }
+    }
+}
