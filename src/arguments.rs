@@ -112,9 +112,13 @@ unsafe impl Arguable for u8{}
 
 unsafe impl Primitive for *const u8 {}
 unsafe impl Arguable for *const u8 {}
+unsafe impl Primitive for *mut u8 {}
+unsafe impl Arguable for *mut u8 {}
 
 unsafe impl Primitive for *const i8 {}
 unsafe impl Arguable for *const i8 {}
+unsafe impl Primitive for *mut i8 {}
+unsafe impl Arguable for *mut i8 {}
 
 unsafe impl Arguable for i64 {}
 unsafe impl Primitive for i64 {}
