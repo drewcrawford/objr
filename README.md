@@ -123,3 +123,11 @@ This library makes the assumption that the underlying ball of ObjC is implemente
 it avoids runtime checks that ObjC is implemented correctly, so to the extent that it isn't, you may encounter UB.
 
 For more information, see the safety section of `objc_instance`!
+
+# objr expanded universe
+
+objr is part of an expanded universe of related crates that take a similar approach
+to binding Apple technologies to Rust.
+
+* [blocksr](https://github.com/drewcrawford/blocksr) provides Clang/ObjC blocks
+* [dispatchr](http://github.com/drewcrawford/dispatchr) binds libdispatch/GCD
