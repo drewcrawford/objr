@@ -23,6 +23,7 @@ use std::marker::PhantomData;
 use crate::objcinstance::NonNullImmutable;
 use std::ptr::NonNull;
 use std::fmt::{Debug};
+use std::hash::{Hash, Hasher};
 
 extern "C" {
     fn objc_autoreleaseReturnValue(object: *const c_void) -> *const c_void;
@@ -105,6 +106,19 @@ impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedCell<'a, T> where T:
         std::fmt::Display::fmt(ptr, f)
     }
 }
+impl<'a, T: PartialEq + ObjcInstance> PartialEq for AutoreleasedCell<'a, T> {
+    fn eq(&self, other: &Self) -> bool {
+        let a: &T = self;
+        let b: &T = other;
+        a == b
+    }
+}
+impl<'a, T: Hash + ObjcInstance> Hash for AutoreleasedCell<'a, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let a: &T = self;
+        a.hash(state);
+    }
+}
 
 /**
 An objc object that is part of an autorelease pool
@@ -158,6 +172,20 @@ impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedMutCell<'a, T> where
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let ptr = unsafe{ &*self.ptr.as_ptr() };
         f.write_fmt(format_args!("{}",ptr))
+    }
+}
+
+impl<'a, T: PartialEq + ObjcInstance> PartialEq for AutoreleasedMutCell<'a, T> {
+    fn eq(&self, other: &Self) -> bool {
+        let a: &T = self;
+        let b: &T = other;
+        a == b
+    }
+}
+impl<'a, T: Hash + ObjcInstance> Hash for AutoreleasedMutCell<'a, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let a: &T = self;
+        a.hash(state);
     }
 }
 
@@ -272,6 +300,19 @@ impl<'a, T: ObjcInstance> std::fmt::Display for StrongCell<T> where T: std::fmt:
         f.write_fmt(format_args!("{}",ptr))
     }
 }
+impl<T: PartialEq + ObjcInstance> PartialEq for StrongCell<T> {
+    fn eq(&self, other: &Self) -> bool {
+        let a: &T = self;
+        let b: &T = other;
+        a == b
+    }
+}
+impl<T: Hash + ObjcInstance> Hash for StrongCell<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let a: &T = self;
+        a.hash(state);
+    }
+}
 //We do it in objc all the time...
 unsafe impl<T: ObjcInstance> Send for StrongCell<T> {}
 
@@ -334,6 +375,19 @@ impl<'a, T: ObjcInstance> std::fmt::Display for StrongLifetimeCell<'a, T> where 
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let ptr = unsafe{ &*(self.0.as_ptr())};
         f.write_fmt(format_args!("{}",ptr))
+    }
+}
+impl<'a, T: PartialEq + ObjcInstance> PartialEq for StrongLifetimeCell<'a, T> {
+    fn eq(&self, other: &Self) -> bool {
+        let a: &T = self;
+        let b: &T = other;
+        a == b
+    }
+}
+impl<'a, T: Hash + ObjcInstance> Hash for StrongLifetimeCell<'a, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let a: &T = self;
+        a.hash(state);
     }
 }
 
@@ -420,6 +474,19 @@ impl<'a, T: ObjcInstance> std::fmt::Display for StrongMutCell<T> where T: std::f
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let ptr = unsafe{ &*(self.0.as_ptr())};
         f.write_fmt(format_args!("{}",ptr))
+    }
+}
+impl<T: PartialEq + ObjcInstance> PartialEq for StrongMutCell<T> {
+    fn eq(&self, other: &Self) -> bool {
+        let a: &T = self;
+        let b: &T = other;
+        a == b
+    }
+}
+impl<T: Hash + ObjcInstance> Hash for StrongMutCell<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let a: &T = self;
+        a.hash(state);
     }
 }
 
