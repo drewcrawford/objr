@@ -113,6 +113,9 @@ impl<'a, T: PartialEq + ObjcInstance> PartialEq for AutoreleasedCell<'a, T> {
         a == b
     }
 }
+
+impl<'a, T: Eq + ObjcInstance> Eq for AutoreleasedCell<'a, T>  {}
+
 impl<'a, T: Hash + ObjcInstance> Hash for AutoreleasedCell<'a, T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let a: &T = self;
@@ -182,6 +185,7 @@ impl<'a, T: PartialEq + ObjcInstance> PartialEq for AutoreleasedMutCell<'a, T> {
         a == b
     }
 }
+impl<'a, T: Eq + ObjcInstance> Eq for AutoreleasedMutCell<'a, T> {}
 impl<'a, T: Hash + ObjcInstance> Hash for AutoreleasedMutCell<'a, T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let a: &T = self;
@@ -307,6 +311,7 @@ impl<T: PartialEq + ObjcInstance> PartialEq for StrongCell<T> {
         a == b
     }
 }
+impl<T: Eq + ObjcInstance> Eq for StrongCell<T> {}
 impl<T: Hash + ObjcInstance> Hash for StrongCell<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let a: &T = self;
@@ -384,6 +389,7 @@ impl<'a, T: PartialEq + ObjcInstance> PartialEq for StrongLifetimeCell<'a, T> {
         a == b
     }
 }
+impl<'a, T: Eq + ObjcInstance> Eq for StrongLifetimeCell<'a, T> {}
 impl<'a, T: Hash + ObjcInstance> Hash for StrongLifetimeCell<'a, T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let a: &T = self;
@@ -483,6 +489,7 @@ impl<T: PartialEq + ObjcInstance> PartialEq for StrongMutCell<T> {
         a == b
     }
 }
+impl<T: Eq + ObjcInstance> Eq for StrongMutCell<T> {}
 impl<T: Hash + ObjcInstance> Hash for StrongMutCell<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let a: &T = self;

@@ -36,6 +36,7 @@ impl PartialEq for NSString {
 		}
 	}
 }
+impl Eq for NSString {}
 impl Hash for NSString {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		unsafe {
