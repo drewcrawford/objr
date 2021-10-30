@@ -40,10 +40,7 @@ impl Eq for NSString {}
 impl Hash for NSString {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		unsafe {
-			//I am reasonably confident this doesn't allocate
-			let pool = ActiveAutoreleasePool::assume_autoreleasepool();
-			let hash: NSUInteger = NSString::perform_primitive(self.assume_nonmut_perform(), Sel::hash(),&pool, () );
-			state.write_u64(hash);
+			todo!();
 		}
 	}
 }
