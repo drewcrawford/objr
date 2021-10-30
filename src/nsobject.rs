@@ -10,10 +10,6 @@ use super::performselector::PerformsSelector;
 use super::bindings::*;
 
 
-//If you fail to Link CoreFoundation, description cannot be found
-#[link(name="CoreFoundation",kind="framework")]
-//If you fail to link Foundation, linker will not understand where NSString symbols come from
-#[link(name="Foundation",kind="framework")]
 extern {}
 objc_selector_group!(
         pub trait NSObjectSelectors {
