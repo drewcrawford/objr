@@ -131,3 +131,5 @@ to binding Apple technologies to Rust.
 
 * [blocksr](https://github.com/drewcrawford/blocksr) provides Clang/ObjC blocks
 * [dispatchr](http://github.com/drewcrawford/dispatchr) binds libdispatch/GCD
+* [foundationr](https://github.com/drewcrawford/foundationr) binds Foundation
+* [coregraphicsr](https://github.com/drewcrawford/coregraphicsr) binds Core Graphics
