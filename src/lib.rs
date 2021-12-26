@@ -132,9 +132,12 @@ objr is part of an expanded universe of related crates that take a similar appro
 to binding Apple technologies to Rust.
 
 * [blocksr](https://github.com/drewcrawford/blocksr) provides Clang/ObjC blocks
-* [dispatchr](https://github.com/drewcrawford/dispatchr) binds libdispatch/GCD
+* [dispatchr](http://github.com/drewcrawford/dispatchr) binds libdispatch/GCD
 * [foundationr](https://github.com/drewcrawford/foundationr) binds Foundation
 * [coregraphicsr](https://github.com/drewcrawford/coregraphicsr) binds Core Graphics
+* [corevideor](https://github.com/drewcrawford/corevideor) binds Core Video
+* [quartzcorer](https://github.com/drewcrawford/quartzcorer) binds Core Animation
+* [appkitr](https://github.com/drewcrawford/appkitr) binds AppKit
 */
 extern crate self as objr;
 pub mod macros;

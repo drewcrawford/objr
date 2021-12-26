@@ -133,3 +133,6 @@ to binding Apple technologies to Rust.
 * [dispatchr](http://github.com/drewcrawford/dispatchr) binds libdispatch/GCD
 * [foundationr](https://github.com/drewcrawford/foundationr) binds Foundation
 * [coregraphicsr](https://github.com/drewcrawford/coregraphicsr) binds Core Graphics
+* [corevideor](https://github.com/drewcrawford/corevideor) binds Core Video
+* [quartzcorer](https://github.com/drewcrawford/quartzcorer) binds Core Animation
+* [appkitr](https://github.com/drewcrawford/appkitr) binds AppKit
