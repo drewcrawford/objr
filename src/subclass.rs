@@ -640,105 +640,102 @@ macro_rules! objc_subclass {
 
 }
 
-
 #[cfg(test)]
-mod example {
-    use objr::bindings::*;
-    objc_subclass! {
-     pub struct Example {
-         @class(Example)
-         @superclass(NSObject)
-         payload: (),
-         methods: [
-             "-(id) init" => unsafe sample
-         ]
-     }
-}
-
-    extern "C" fn sample(objc_self: &Example, _sel: Sel) -> *const Example {
-        println!("init from rust");
-        unsafe{ Example::perform_super(objc_self.assume_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assume_autoreleasepool(), ()) }
+mod test {
+    mod example {
+        use objr::bindings::*;
+        objc_subclass! {
+            pub struct Example {
+             @class(Example)
+             @superclass(NSObject)
+             payload: (),
+             methods: [
+                 "-(id) init" => unsafe sample
+             ]
+         }
+        }
+        extern "C" fn sample(objc_self: &Example, _sel: Sel) -> *const Example {
+            println!("init from rust");
+            unsafe { Example::perform_super(objc_self.assume_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assume_autoreleasepool(), ()) }
+        }
     }
-}
-
-#[cfg(test)]
-mod example_payload_no_methods {
-    use objr::bindings::*;
-    objc_subclass! {
+    mod example_payload_no_methods {
+        use objr::bindings::*;
+        objc_subclass! {
          pub struct ExamplePN {
              @class(ExamplePN)
              @superclass(NSObject)
              payload: unsafe uninitialized nondrop u8,
              methods: []
          }
+        }
     }
-}
-
-#[cfg(test)]
-mod example_payload_methods {
-    use objr::bindings::*;
-    objc_subclass! {
-     pub struct ExamplePayloadMethods {
-         @class(ExamplePayloadMethods)
-         @superclass(NSObject)
-         payload: unsafe uninitialized nondrop u8,
-         methods: [
-             "-(id) init" => unsafe sample
-         ]
-     }
-}
-
-    extern "C" fn sample(objc_self: &ExamplePayloadMethods, _sel: Sel) -> *const ExamplePayloadMethods {
-        let new_self: &ExamplePayloadMethods = unsafe{ &*ExamplePayloadMethods::perform_super(objc_self.assume_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assume_autoreleasepool(), () ) };
-        *(unsafe{new_self.payload_mut()}) = 5;
-        new_self
+    mod example_payload_methods {
+        use objr::bindings::*;
+        objc_subclass! {
+         pub struct ExamplePayloadMethods {
+             @class(ExamplePayloadMethods)
+             @superclass(NSObject)
+             payload: unsafe uninitialized nondrop u8,
+             methods: [
+                 "-(id) init" => unsafe sample
+             ]
+         }
+        }
+        extern "C" fn sample(objc_self: &ExamplePayloadMethods, _sel: Sel) -> *const ExamplePayloadMethods {
+            let new_self: &ExamplePayloadMethods = unsafe{ &*ExamplePayloadMethods::perform_super(objc_self.assume_nonmut_perform(), Sel::init(), &ActiveAutoreleasePool::assume_autoreleasepool(), () ) };
+            *(unsafe{new_self.payload_mut()}) = 5;
+            new_self
+        }
     }
-}
+    mod example_dealloc {
+        pub static DEALLOC_COUNT: AtomicBool = AtomicBool::new(false);
 
-#[cfg(test)]
-mod example_dealloc {
-    pub static DEALLOC_COUNT: AtomicBool = AtomicBool::new(false);
-    use objr::bindings::*;
-    use std::sync::atomic::{AtomicBool, Ordering};
-    objc_subclass! {
-     pub struct ExampleDealloc {
-         @class(ExampleDealloc)
-         @superclass(NSObject)
-         payload: unsafe uninitialized nondrop u8,
-         methods: [
-             "-(void) dealloc" => unsafe dealloc
-         ]
-     }
-}
-
-    extern "C" fn dealloc(objc_self: &mut ExampleDealloc, _sel: Sel) {
-        let _: () = unsafe{ ExampleDealloc::perform_super_primitive(objc_self, Sel::from_str("dealloc"), &ActiveAutoreleasePool::assume_autoreleasepool(), ())};
-        DEALLOC_COUNT.store(true,Ordering::SeqCst);
+        use objr::bindings::*;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        objc_subclass! {
+             pub struct ExampleDealloc {
+                 @class(ExampleDealloc)
+                 @superclass(NSObject)
+                 payload: unsafe uninitialized nondrop u8,
+                 methods: [
+                     "-(void) dealloc" => unsafe dealloc
+                 ]
+             }
+        }
+        extern "C" fn dealloc(objc_self: &mut ExampleDealloc, _sel: Sel) {
+            let _: () = unsafe{ ExampleDealloc::perform_super_primitive(objc_self, Sel::from_str("dealloc"), &ActiveAutoreleasePool::assume_autoreleasepool(), ())};
+            DEALLOC_COUNT.store(true,Ordering::SeqCst);
+        }
     }
+
+    #[test] fn subclass() {
+        use objr::bindings::*;
+
+        let pool = unsafe{ AutoreleasePool::new() };
+        let _ = example::Example::class().alloc_init(&pool);
+    }
+    #[test] fn subclass_dealloc() {
+        use objr::bindings::*;
+        use std::sync::atomic::Ordering;
+        let pool = unsafe{ AutoreleasePool::new() };
+        assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == false);
+        let _ = example_dealloc::ExampleDealloc::class().alloc_init(&pool);
+        //ex dropped here
+        assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == true);
+
+    }
+
+    #[test] fn initialize_payload() {
+        use objr::bindings::*;
+        let pool = unsafe{ AutoreleasePool::new() };
+        let ex = example_payload_methods::ExamplePayloadMethods::class().alloc_init(&pool);
+        assert!(*ex.payload() == 5);
+    }
+
 }
 
 
 
-#[test] fn subclass() {
-    use objr::bindings::*;
 
-    let pool = unsafe{ AutoreleasePool::new() };
-    let _ = example::Example::class().alloc_init(&pool);
-}
-#[test] fn subclass_dealloc() {
-    use objr::bindings::*;
-    use std::sync::atomic::Ordering;
-    let pool = unsafe{ AutoreleasePool::new() };
-    assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == false);
-    let _ = example_dealloc::ExampleDealloc::class().alloc_init(&pool);
-    //ex dropped here
-    assert!(example_dealloc::DEALLOC_COUNT.load(Ordering::SeqCst) == true);
 
-}
-
-#[test] fn initialize_payload() {
-    use objr::bindings::*;
-    let pool = unsafe{ AutoreleasePool::new() };
-    let ex = example_payload_methods::ExamplePayloadMethods::class().alloc_init(&pool);
-    assert!(*ex.payload() == 5);
-}
