@@ -296,6 +296,9 @@ impl<T: ObjcInstance> StrongCell<T> {
     /// # Safety
     /// You must comply with all the safety guarantees of [ObjcInstanceBehavior::cast].
     #[inline] pub unsafe fn cast_into<U: ObjcInstance>(self) -> StrongCell<U> {
+        if DEBUG_MEMORY {
+            println!("cast_into {} => {} {:p}",std::any::type_name::<T>(), std::any::type_name::<U>(), self.0.as_ptr());
+        }
         let r = StrongCell::assume_retained(self.deref().cast());
         std::mem::forget(self);
         r
@@ -311,7 +314,7 @@ impl<T: ObjcInstance> Drop for StrongCell<T> {
     fn drop(&mut self) {
         unsafe {
             if DEBUG_MEMORY {
-                println!("Drop {} {:p}",std::any::type_name::<T>(), self);
+                println!("Drop StrongCell<{}> {:p}",std::any::type_name::<T>(), self.0.as_ptr());
             }
 
             objc_release(self.0.as_ptr() as *const _ as *const c_void);
