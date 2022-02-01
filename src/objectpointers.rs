@@ -15,7 +15,7 @@ Lifetime variants:
 
 
 See documentation for particular cells.
-*/
+ */
 
 use core::ffi::{c_void};
 use crate::bindings::{ActiveAutoreleasePool,ObjcInstance};
@@ -45,7 +45,7 @@ extern "C" {
 An objc object that is part of an autorelease pool
 
 The pool is used to lexically scope the lifetime of the pointer.
-*/
+ */
 #[derive(Debug)]
 pub struct AutoreleasedCell<'a, T> {
     ptr: NonNullImmutable<T>,
@@ -69,6 +69,9 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
     ///
     /// This is the case for many objc methods, depending on convention.
     pub unsafe fn assume_autoreleased(ptr: &T, _pool: &'a ActiveAutoreleasePool) -> Self {
+        if DEBUG_MEMORY {
+            println!("assume_autoreleased {} {:p}",std::any::type_name::<T>(), ptr);
+        }
         AutoreleasedCell {
             ptr: NonNullImmutable::from_reference(ptr),
             marker: PhantomData::default()
@@ -76,7 +79,7 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
     }
 
     ///Converts to a mutable version.
-    /// 
+    ///
     /// # Safety
     /// You are responsible to check:
     /// * There are no other references to the type, mutable or otherwise
@@ -84,10 +87,10 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
     ///   generally, you must ensure it is appropriate to call them here.
     pub unsafe fn assume_mut(self) -> AutoreleasedMutCell<'a, T> {
         let r =
-        AutoreleasedMutCell {
-            ptr: NonNull::new_unchecked(self.ptr.as_ptr() as *mut T),
-            marker: Default::default()
-        };
+            AutoreleasedMutCell {
+                ptr: NonNull::new_unchecked(self.ptr.as_ptr() as *mut T),
+                marker: Default::default()
+            };
         std::mem::forget(self);
         r
     }
@@ -151,6 +154,9 @@ impl<'a, T: ObjcInstance> AutoreleasedMutCell<'a, T> {
     ///
     /// This is the case for many objc methods, depending on convention.
     pub unsafe fn assume_autoreleased(ptr: &mut T, _pool: &'a ActiveAutoreleasePool) -> Self {
+        if DEBUG_MEMORY {
+            println!("assume_autoreleased {} {:p}",std::any::type_name::<T>(), ptr);
+        }
         Self {
             ptr: NonNull::new_unchecked(ptr),
             marker: PhantomData::default()
@@ -219,12 +225,15 @@ so we assume we need to retain.
 This is often used at the border of an objc binding.
 
 For an elided 'best case' version, see `RefCell`.
-*/
+ */
 #[derive(Debug)]
 pub struct StrongCell<T: ObjcInstance>(NonNullImmutable<T>);
 impl<T: ObjcInstance> StrongCell<T> {
     pub fn retaining(cell: &T) -> Self {
         unsafe {
+            if DEBUG_MEMORY {
+                println!("retain {} {:p}",std::any::type_name::<T>(), cell);
+            }
             objc_retain(cell as *const T as *const c_void);
             Self::assume_retained(cell)
         }
@@ -246,6 +255,9 @@ impl<T: ObjcInstance> StrongCell<T> {
     /// * That the type is 'static, that is, it has no references to external (Rust) memory.
     ///   If this is not the case, see [StrongLifetimeCell].
     pub unsafe fn assume_retained(reference: &T) -> Self {
+        if DEBUG_MEMORY {
+            println!("assume_retained {} {:p}",std::any::type_name::<T>(), reference);
+        }
         StrongCell(NonNullImmutable::from_reference(reference))
     }
 
@@ -287,6 +299,7 @@ impl<T: ObjcInstance> Drop for StrongCell<T> {
             if DEBUG_MEMORY {
                 println!("Drop {} {:p}",std::any::type_name::<T>(), self);
             }
+
             objc_release(self.0.as_ptr() as *const _ as *const c_void);
         }
     }
@@ -332,6 +345,9 @@ pub struct StrongLifetimeCell<'a, T: ObjcInstance>(NonNullImmutable<T>,PhantomDa
 impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
     pub fn retaining(cell: &'a T) -> Self {
         unsafe {
+            if DEBUG_MEMORY {
+                println!("retain {} {:p}",std::any::type_name::<T>(), cell);
+            }
             objc_retain(cell as *const T as *const c_void);
             Self::assume_retained_limited(cell)
         }
@@ -355,6 +371,9 @@ impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
     /// * That all objc APIs which end up seeing this pointer will either only access it for the lifetime specified,
     ///   or will take some other step (usually, copying) the object into a longer lifetime.
     pub unsafe fn assume_retained_limited(reference: &'a T) -> Self {
+        if DEBUG_MEMORY {
+            println!("assume_retained_limited {} {:p}",std::any::type_name::<T>(), reference);
+        }
         StrongLifetimeCell(NonNullImmutable::from_reference(reference), PhantomData::default())
     }
 }
@@ -402,6 +421,9 @@ impl<'a, T: Hash + ObjcInstance> Hash for StrongLifetimeCell<'a, T> {
 pub struct StrongMutCell<T: ObjcInstance>(NonNull<T>);
 impl<T: ObjcInstance> StrongMutCell<T> {
     pub fn retaining(cell: &mut T) -> Self {
+        if DEBUG_MEMORY {
+            println!("retain {} {:p}",std::any::type_name::<T>(), cell);
+        }
         unsafe {
             objc_retain(cell as *const T as *const c_void);
             Self::assume_retained(cell)
@@ -434,6 +456,9 @@ impl<T: ObjcInstance> StrongMutCell<T> {
     /// # Safety
     /// If this isn't actually retained, will UB
     pub unsafe fn assume_retained(reference: &mut T) -> Self {
+        if DEBUG_MEMORY {
+            println!("assume_retained {} {:p}",std::any::type_name::<T>(), reference);
+        }
         //safe because we're using a reference
         StrongMutCell(NonNull::new_unchecked(reference))
     }
