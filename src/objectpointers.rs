@@ -24,6 +24,8 @@ use crate::objcinstance::NonNullImmutable;
 use std::ptr::NonNull;
 use std::fmt::{Debug};
 use std::hash::{Hash, Hasher};
+use std::ops::{Deref, DerefMut};
+use crate::objcinstance::ObjcInstanceBehavior;
 
 extern "C" {
     fn objc_autoreleaseReturnValue(object: *const c_void) -> *const c_void;
@@ -286,6 +288,18 @@ impl<T: ObjcInstance> StrongCell<T> {
         std::mem::forget(self); //LEAK
         unsafe{ objc_autoreleaseReturnValue(ptr as *const c_void) as *const T }
     }
+
+    ///Reinterprets this cell as a cell of another type.
+    ///
+    /// # Performance
+    /// This is a 0-cost abstraction.  The retain/release calls of converting to the new cell type are elided.
+    /// # Safety
+    /// You must comply with all the safety guarantees of [ObjcInstanceBehavior::cast].
+    #[inline] pub unsafe fn cast_into<U: ObjcInstance>(self) -> StrongCell<U> {
+        let r = StrongCell::assume_retained(self.deref().cast());
+        std::mem::forget(self);
+        r
+    }
 }
 
 impl<T: ObjcInstance> Clone for StrongCell<T> {
@@ -375,6 +389,18 @@ impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
             println!("assume_retained_limited {} {:p}",std::any::type_name::<T>(), reference);
         }
         StrongLifetimeCell(NonNullImmutable::from_reference(reference), PhantomData::default())
+    }
+
+    ///Reinterprets this cell as a cell of another type.
+    ///
+    /// # Performance
+    /// This is a 0-cost abstraction.  The retain/release calls of converting to the new cell type are elided.
+    /// # Safety
+    /// You must comply with all the safety guarantees of [ObjcInstanceBehavior::cast].
+    #[inline] pub unsafe fn cast_into<U: ObjcInstance + 'a>(self) -> StrongLifetimeCell<'a, U>{
+        let r = StrongLifetimeCell::assume_retained_limited(&*(self.0.as_ptr() as *const U));
+        std::mem::forget(self);
+        r
     }
 }
 
@@ -473,6 +499,17 @@ impl<T: ObjcInstance> StrongMutCell<T> {
         let ptr = self.0.as_ptr();
         std::mem::forget(self); //LEAK
         unsafe{ objc_autoreleaseReturnValue(ptr as *const c_void) as *const T as *mut T }
+    }
+    ///Reinterprets this cell as a cell of another type.
+    ///
+    /// # Performance
+    /// This is a 0-cost abstraction.  The retain/release calls of converting to the new cell type are elided.
+    /// # Safety
+    /// You must comply with all the safety guarantees of [ObjcInstanceBehavior::cast].
+    #[inline] pub unsafe fn cast_into<U: ObjcInstance>(mut self) -> StrongMutCell<U> {
+        let r = StrongMutCell::assume_retained(self.deref_mut().cast_mut());
+        std::mem::forget(self);
+        r
     }
 }
 
