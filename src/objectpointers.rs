@@ -348,10 +348,10 @@ impl<T: Hash + ObjcInstance> Hash for StrongCell<T> {
         a.hash(state);
     }
 }
-//We do it in objc all the time...
-unsafe impl<T: ObjcInstance> Send for StrongCell<T> {}
 
-//If the underlying objc instance is sync, so are we...
+//If the underlying objc instance is sync, we are Send
+unsafe impl<T: ObjcInstance + Sync> Send for StrongCell<T> {}
+///We are also Sync, because of the above situation and because ARC is threadsafe.
 unsafe impl<T: ObjcInstance + Sync> Sync for StrongCell<T> {}
 
 ///Like StrongCell, but restricted to a particular lifetime.
@@ -516,9 +516,10 @@ impl<T: ObjcInstance> StrongMutCell<T> {
     }
 }
 
-///we send in objc all the time
-unsafe impl<T: ObjcInstance> Send for StrongMutCell<T>  {}
-
+///We can implement Send for StrongMutCell conditional on T: Send, since we know the pointer is exclusive from StrongMutCell.
+unsafe impl<T: ObjcInstance + Send> Send for StrongMutCell<T>  {}
+///We can also implement sync if the type is sync.
+unsafe impl<T: ObjcInstance + Sync> Sync for StrongMutCell<T> {}
 impl<T: ObjcInstance> Drop for StrongMutCell<T> {
     fn drop(&mut self) {
         unsafe {
