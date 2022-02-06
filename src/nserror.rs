@@ -7,6 +7,8 @@ objc_class! {
     }
 }
 
+impl std::error::Error for NSError {}
+
 
 pub trait ResultNSError<T> {
     ///A friendlier unwrap for [NSError] that prints the error if you encounter it.
@@ -32,4 +34,14 @@ impl<T> ResultNSError<T> for Result<T,StrongCell<NSError>> {
             }
         }
     }
+}
+
+#[test] fn check_err() {
+    //ensure cell types implement NSError
+    fn assert_err<T: std::error::Error>(_t: &T) { }
+    autoreleasepool(|pool| {
+        let e = NSError::class().alloc_init(pool);
+        assert_err(&e);
+    })
+
 }

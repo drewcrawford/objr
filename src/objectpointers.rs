@@ -111,6 +111,7 @@ impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedCell<'a, T> where T:
         std::fmt::Display::fmt(ptr, f)
     }
 }
+impl<'a, T: ObjcInstance> std::error::Error for AutoreleasedCell<'a, T> where T: std::error::Error {}
 impl<'a, T: PartialEq + ObjcInstance> PartialEq for AutoreleasedCell<'a, T> {
     fn eq(&self, other: &Self) -> bool {
         let a: &T = self;
@@ -200,6 +201,8 @@ impl<'a, T: Hash + ObjcInstance> Hash for AutoreleasedMutCell<'a, T> {
         a.hash(state);
     }
 }
+impl<'a, T: ObjcInstance> std::error::Error for AutoreleasedMutCell<'a, T> where T: std::error::Error {}
+
 
 /**
 A strong pointer to an objc object.
@@ -348,6 +351,7 @@ impl<T: Hash + ObjcInstance> Hash for StrongCell<T> {
         a.hash(state);
     }
 }
+impl<T: std::error::Error + ObjcInstance> std::error::Error for StrongCell<T> {}
 
 //If the underlying objc instance is sync, we are Send
 unsafe impl<T: ObjcInstance + Sync> Send for StrongCell<T> {}
@@ -444,6 +448,8 @@ impl<'a, T: Hash + ObjcInstance> Hash for StrongLifetimeCell<'a, T> {
         a.hash(state);
     }
 }
+impl<'a, T: std::error::Error + ObjcInstance> std::error::Error for StrongLifetimeCell<'a, T> {}
+
 
 ///[StrongCell], but mutable
 #[derive(Debug)]
@@ -562,6 +568,7 @@ impl<T: Hash + ObjcInstance> Hash for StrongMutCell<T> {
         a.hash(state);
     }
 }
+impl<T: std::error::Error + ObjcInstance> std::error::Error for StrongMutCell<T> {}
 
 
 
