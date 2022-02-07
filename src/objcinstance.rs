@@ -431,6 +431,21 @@ actually constrain the runtime behavior, not does specialization create a distin
 The best way to project this in Rust is to project the "bolted on top" model.  Therefore (and also for technical reasons), this
 macro does not accept generic arguments, but [objc_instance_newtype] does.
 
+## Multithreading
+
+Types declared with this macro do not implement Send or Sync.
+
+```compile_fail
+fn test_not_send() {
+    fn assert_send<S: Send>(s: &S) { }
+    objc_instance! {
+        pub struct Example;
+    }
+    fn init() -> &'static Example { todo!() }
+    assert_send(init());
+}
+```
+
  */
 #[macro_export]
 macro_rules! objc_instance  {
@@ -446,7 +461,9 @@ macro_rules! objc_instance  {
             $(#[$attribute])*
             #[repr(transparent)]
             #[derive(::objr::bindings::ObjcInstance,Debug)]
-            pub struct $objctype(core::ffi::c_void);
+            pub struct $objctype(core::ffi::c_void,
+            //mark as non-send
+            std::marker::PhantomData<*const ()>);
         });
         ::objr::bindings::__use!($pub no_construct,$objctype,$objctype);
     };

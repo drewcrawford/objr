@@ -51,6 +51,11 @@ pub trait ObjcClass: ObjcInstance + Sized {
 #[derive(Debug)]
 pub struct Class<T: ObjcClass>(c_void, PhantomData<T>);
 
+//objc classes are threadsafe
+unsafe impl<T: ObjcClass> Send for Class<T> {}
+unsafe impl<T: ObjcClass> Sync for Class<T> {}
+
+
 ///Classes can use performSelector
 unsafe impl<T: ObjcClass> PerformablePointer for Class<T> {}
 
