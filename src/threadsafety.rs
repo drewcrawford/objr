@@ -46,17 +46,17 @@ remove the wrapper, so you must guarantee for the lifetime of the wrapper you kn
 */
 #[repr(transparent)] //for ObjcInstance conformance
 #[derive(Debug)]
-pub struct ImpliedSyncUse<T>(T);
+pub struct ImpliedSyncUse<T: ObjcInstance>(T);
 
-impl<T> ImpliedSyncUse<T> {
+impl<T: ObjcInstance> ImpliedSyncUse<T> {
     /**
     Creates a wrapper type that guarantees this use is [Sync].
 
     # Safety
     You must guarantee that, from the time of this function until [unwrap], all operations performed meet the guarantees of [Sync].
     */
-    #[inline] pub const unsafe fn new(t: T) -> Self {
-        ImpliedSyncUse(t)
+    #[inline] pub unsafe fn new(t: &T) -> &Self {
+        std::mem::transmute(t)
     }
     /**
     Unwraps the wrapper back to the original type.
@@ -64,11 +64,8 @@ impl<T> ImpliedSyncUse<T> {
     # Safety
     You must guarantee that, from the time of [new] until now, all operations performed meet the guarantees of Sync.
     */
-    #[inline] pub unsafe fn unwrap(self) -> T {
-        self.0
+    #[inline] pub unsafe fn unwrap(&self) -> &T {
+        std::mem::transmute(self)
     }
 }
-
-impl<T: ObjcInstance> ObjcInstance for ImpliedSyncUse<T> {
-
-}
+unsafe impl<T: ObjcInstance> Sync for ImpliedSyncUse<T> {}
