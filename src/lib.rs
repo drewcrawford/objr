@@ -157,6 +157,7 @@ mod sel;
 mod nserror;
 mod subclass;
 mod exception;
+mod threadsafety;
 
 
 ///This prelude provides a "foundation-like" experience.  This brings
@@ -203,6 +204,7 @@ pub mod bindings {
     pub use super::arguments::{Primitive,Arguable};
     pub use super::exception::{try_unwrap_void};
     pub use super::objcinstance::ObjcInstanceBehavior;
+    pub use super::threadsafety::ImpliedSyncUse;
 
     ///Used by macros, not public API
     #[doc(hidden)]
