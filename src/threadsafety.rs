@@ -1,3 +1,5 @@
+use crate::bindings::ObjcInstance;
+
 /** Indicates some particular use of a type is implied to be threadsafe by ObjC convention.
 
 This type is used in cases where we are modeling some Cocoa API guarantee where the details
@@ -42,6 +44,8 @@ is threadsafe in some way, without explaining which way exactly.  The wrapper re
 remove the wrapper, so you must guarantee for the lifetime of the wrapper you know what you're doing.
 
 */
+#[repr(transparent)] //for ObjcInstance conformance
+#[derive(Debug)]
 pub struct ImpliedSyncUse<T>(T);
 
 impl<T> ImpliedSyncUse<T> {
@@ -63,4 +67,8 @@ impl<T> ImpliedSyncUse<T> {
     #[inline] pub unsafe fn unwrap(self) -> T {
         self.0
     }
+}
+
+impl<T: ObjcInstance> ObjcInstance for ImpliedSyncUse<T> {
+
 }
