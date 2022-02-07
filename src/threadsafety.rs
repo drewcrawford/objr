@@ -44,19 +44,18 @@ is threadsafe in some way, without explaining which way exactly.  The wrapper re
 remove the wrapper, so you must guarantee for the lifetime of the wrapper you know what you're doing.
 
 */
-#[repr(transparent)] //for ObjcInstance conformance
 #[derive(Debug)]
-pub struct ImpliedSyncUse<T: ObjcInstance>(T);
+pub struct ImpliedSyncUse<T>(T);
 
-impl<T: ObjcInstance> ImpliedSyncUse<T> {
+impl<T> ImpliedSyncUse<T> {
     /**
     Creates a wrapper type that guarantees this use is [Sync].
 
     # Safety
     You must guarantee that, from the time of this function until [unwrap], all operations performed meet the guarantees of [Sync].
     */
-    #[inline] pub unsafe fn new(t: &T) -> &Self {
-        std::mem::transmute(t)
+    #[inline] pub const unsafe fn new(t: T) -> Self {
+        Self(t)
     }
     /**
     Unwraps the wrapper back to the original type.
@@ -64,9 +63,11 @@ impl<T: ObjcInstance> ImpliedSyncUse<T> {
     # Safety
     You must guarantee that, from the time of [new] until now, all operations performed meet the guarantees of Sync.
     */
-    #[inline] pub unsafe fn unwrap(&self) -> &T {
-        std::mem::transmute(self)
+    #[inline] pub unsafe fn unwrap(self) -> T {
+        self.0
     }
 }
-impl<T: ObjcInstance> ObjcInstance for ImpliedSyncUse<T> {}
-unsafe impl<T: ObjcInstance> Sync for ImpliedSyncUse<T> {}
+unsafe impl<T> Sync for ImpliedSyncUse<T> {}
+unsafe impl<T> Send for ImpliedSyncUse<T> {}
+
+

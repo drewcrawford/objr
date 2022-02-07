@@ -8,7 +8,8 @@ objc_class! {
 }
 
 impl std::error::Error for NSError {}
-
+//pretty sure this is implied based on how swift `try` works
+unsafe impl Send for NSError {}
 
 pub trait ResultNSError<T> {
     ///A friendlier unwrap for [NSError] that prints the error if you encounter it.
