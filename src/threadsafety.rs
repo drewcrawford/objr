@@ -68,4 +68,5 @@ impl<T: ObjcInstance> ImpliedSyncUse<T> {
         std::mem::transmute(self)
     }
 }
+impl<T: ObjcInstance> ObjcInstance for ImpliedSyncUse<T> {}
 unsafe impl<T: ObjcInstance> Sync for ImpliedSyncUse<T> {}
