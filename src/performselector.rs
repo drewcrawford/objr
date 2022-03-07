@@ -70,6 +70,17 @@ pub trait PerformsSelector  {
     ///See the safety section of [objc_instance!].
     unsafe fn perform_result<'a, A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &'a ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
 
+    ///Performs, calling a function of pattern `- (BOOL)example:(Parameter*)parameter... error:(NSError **)error;`
+    ///
+    /// If the method returns `YES`, it is assumed not to error, and `Ok(())` will be returned.
+    /// If it returns `NO`, it is assumed to error, and `Err(...)` will be returned.
+    ///
+    /// By convention, the error value is an autoreleased [NSError].
+    ///
+    /// # Safety
+    /// See the safety section of [objc_instance!].
+    unsafe fn perform_bool_result<'a, A: Arguments>(receiver: *mut Self, selector: Sel, pool: &'a ActiveAutoreleasePool, args: A) -> Result<(),AutoreleasedCell<'a, NSError>>;
+
     ///Performs, returning the specified [ObjcInstance].
     ///
     /// This variant assumes 1) the calling convention is +0, 2) the type returned to you is +1.  The implementation
@@ -121,6 +132,10 @@ impl<T: PerformablePointer> PerformsSelector for T  {
 
     #[inline] unsafe fn perform_result<'a, A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &'a ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'a, NSError>> {
         Arguments::invoke_error(receiver as *mut c_void, selector, pool, args)
+    }
+
+    #[inline] unsafe fn perform_bool_result<'a, A: Arguments>(receiver: *mut Self, selector: Sel, pool: &'a ActiveAutoreleasePool, args: A) -> Result<(),AutoreleasedCell<'a, NSError>> {
+        Arguments::invoke_error_bool(receiver as *mut c_void, selector, pool, args)
     }
 
     #[inline] unsafe fn perform_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> *const R {

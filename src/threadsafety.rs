@@ -1,5 +1,3 @@
-use crate::bindings::ObjcInstance;
-
 /** Indicates some particular use of a type is implied to be threadsafe by ObjC convention.
 
 This type is used in cases where we are modeling some Cocoa API guarantee where the details
@@ -52,7 +50,7 @@ impl<T> ImpliedSyncUse<T> {
     Creates a wrapper type that guarantees this use is [Sync].
 
     # Safety
-    You must guarantee that, from the time of this function until [unwrap], all operations performed meet the guarantees of [Sync].
+    You must guarantee that, from the time of this function until [Self::unwrap], all operations performed meet the guarantees of [Sync].
     */
     #[inline] pub const unsafe fn new(t: T) -> Self {
         Self(t)
@@ -61,7 +59,7 @@ impl<T> ImpliedSyncUse<T> {
     Unwraps the wrapper back to the original type.
 
     # Safety
-    You must guarantee that, from the time of [new] until now, all operations performed meet the guarantees of Sync.
+    You must guarantee that, from the time of [Self::new] until now, all operations performed meet the guarantees of Sync.
     */
     #[inline] pub unsafe fn unwrap(self) -> T {
         self.0

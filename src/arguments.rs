@@ -42,6 +42,8 @@ pub trait Arguments: Sized + Debug + crate::private::Sealed {
     unsafe fn invoke_super<R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &ActiveAutoreleasePool, class: *const AnyClass,args: Self) -> *const R;
     ///Implementation detail of [PerformsSelector::perform_result]
     unsafe fn invoke_error<'a, R: ObjcInstance>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, args: Self) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
+    ///Implementation detail of [PerformsSelector::perform_bool_result].
+    unsafe fn invoke_error_bool<'a>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, args: Self) -> Result<(), AutoreleasedCell<'a, NSError>>;
     ///Implementation detail of [PerformablePointer::perform_result_autorelease_to_retain]
     unsafe fn invoke_error_trampoline_strong<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, _pool: &'a ActiveAutoreleasePool, args: Self) -> Result<*const R,AutoreleasedCell<'a, NSError>>;
     ///Implementation detail of [PerformsSelectorSuper::perform_super_result_autorelease_to_retain]
@@ -212,6 +214,21 @@ macro_rules! arguments_impl {
                    Err(NSError::assume_nonnil(error).assume_autoreleased(pool))
                }
            }
+           #[inline] unsafe fn invoke_error_bool<'a>(receiver: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, ($($identifier,)*): Self) -> Result<(), AutoreleasedCell<'a, NSError>> {
+               let impcast = objc_msgSend as unsafe extern fn();
+               let mut error: *const NSError = std::ptr::null();
+               let imp: unsafe extern fn(*mut c_void, Sel, $( $type, )* &mut *const NSError) -> bool  = std::mem::transmute(impcast);
+               let r = imp(receiver,sel, $($identifier,)* &mut error );
+               if r {
+                   Ok(())
+               }
+               else {
+                   //I'm pretty sure it's street-legal to assume this
+                   //although if it's not, don't sue me
+                   Err(NSError::assume_nonnil(error).assume_autoreleased(pool))
+               }
+           }
+
 
            #[inline] unsafe fn invoke_error_trampoline_strong_super<'a, R: ObjcInstance>(obj: *mut c_void, sel: Sel, pool: &'a ActiveAutoreleasePool, class: *const AnyClass, ($($identifier,)*): Self) -> Result<*const R,AutoreleasedCell<'a, NSError>> {
                let objc_super = ObjcSuper {
@@ -259,7 +276,7 @@ macro_rules! arguments_impl {
     );
 }
 
-//4 arguments shoudl be enough for everybody
+//4 arguments should be enough for everybody
 arguments_impl!();
 arguments_impl!(a: A);
 arguments_impl!(a: A, b: B);
