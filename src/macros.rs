@@ -33,7 +33,7 @@ macro_rules! objc_enum {
         }
     ) => (
         $(#[$attribute])*
-        $pub struct $enum($type);
+        $pub struct $enum(pub $type);
         #[allow(non_upper_case_globals)]
         impl $enum {
            $($pub const $a: $enum = $enum($b);)*
