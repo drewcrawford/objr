@@ -1,4 +1,5 @@
 use std::ptr::NonNull;
+use crate::arguments::Arguable;
 use crate::bindings::{StrongCell, AutoreleasedCell, StrongLifetimeCell, StrongMutCell};
 use crate::autorelease::ActiveAutoreleasePool;
 
@@ -9,7 +10,7 @@ use crate::autorelease::ActiveAutoreleasePool;
 /// It is not stable API to implement this trait yourself.  Instead, declare a conforming
 /// type via [objc_instance!] macro.
 ///
-pub trait ObjcInstance {}
+pub trait ObjcInstance: Arguable {}
 
 
 ///A nonnull, but immutable type.  This allows various optimizations like pointer-packing `Option<T>`.
@@ -126,13 +127,6 @@ pub trait ObjcInstanceBehavior {
     ///Safely casts the object to an `Option<NonNullImmutable>`.  Suitable for implementing nullable functions.
     fn nullable(ptr: *const Self) -> Option<NonNullImmutable<Self>>;
 
-    ///Allows you to call [objr::bindings::PerformsSelector::perform] from a nonmutating context.
-    ///
-    /// This function should not be used for general-purpose pointer casting.
-    ///
-    /// # Safety
-    /// This is only safe when the underlying objc method does not mutate its contents.  See [objc_instance#Mutability] for details.
-    unsafe fn assume_nonmut_perform(&self) -> *mut Self;
 }
 
 impl<T: ObjcInstance> ObjcInstanceBehavior for T {
@@ -154,10 +148,6 @@ impl<T: ObjcInstance> ObjcInstanceBehavior for T {
             //we checked this above
             Some(unsafe{ Self::assume_nonnil(ptr) })
         }
-    }
-
-    unsafe fn assume_nonmut_perform(&self) -> *mut Self {
-        self as *const Self as *mut Self
     }
 
 }
@@ -518,6 +508,7 @@ macro_rules! objc_instance_newtype {
             pub struct $newtype$(<$($T),+>)? (core::ffi::c_void, $($(std::marker::PhantomData<$T>),+)? );
         });
         ::objr::bindings::__use!($pub no_construct,$newtype,$newtype);
+        unsafe impl $(<$($T),+>)? Arguable for $newtype $(<$($T),+>)? {}
         impl $(<$($T),+>)? ObjcInstance for $newtype $(<$($T),+>)? {}
         impl<'a,$($($T),*)?> From<&'a $newtype $(<$($T),+>)? > for &'a $oldtype {
             fn from(f: &'a $newtype $(<$($T),+>)?) -> &'a $oldtype {

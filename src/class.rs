@@ -94,6 +94,20 @@ impl<T: ObjcClass> Class<T> {
             T::assume_nonnil(immutable).assume_retained()
         }
     }
+
+    ///`[[Class alloc] init]`
+    ///
+    /// Mutable variant.
+    ///
+    pub fn alloc_init_mut(&self, pool: &ActiveAutoreleasePool) -> StrongMutCell<T> {
+        unsafe {
+            //todo: optimize with objc_alloc_init
+            let mut cell = self.alloc(pool);
+            T::init(&mut cell, pool);
+            let immutable = cell as *const T;
+            T::assume_nonnil(immutable).assume_retained().assume_mut()
+        }
+    }
     ///`[Class alloc]`
     ///
     /// # Safety

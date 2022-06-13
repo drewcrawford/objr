@@ -64,9 +64,44 @@ pub trait Arguments: Sized + Debug + crate::private::Sealed {
 /// family in its return type.
 pub unsafe trait Arguable  {}
 
-//objc types can have references passed
-unsafe impl<O: ObjcInstance> Arguable for &mut O {}
-unsafe impl<O: ObjcInstance> Arguable for *mut O {}
+/*
+Brief explanation of this type design.
+
+Because of negative trait bounds, we can't declare blanket impls for both ObjcInstance and Primitive
+(neither are sealed, and a type could in theory be both.)
+
+Instead we implement Arguable on the wrapping type (such as the objc wrapping type).
+These cannot normally be constructed.
+ */
+//primitive types can have exclusive references passed
+unsafe impl<O: Arguable> Arguable for &mut O {}
+unsafe impl<O: Arguable> Arguable for *mut O {}
+
+
+pub trait ArguableBehavior {
+    type Target;
+    ///Allows you to call [objr::bindings::PerformsSelector::perform] from a nonmutating context.
+    ///
+    /// This function should not be used for general-purpose pointer casting.
+    ///
+    /// # Safety
+    /// This is only safe when the underlying objc method does not mutate the receiver.  See [objc_instance#Mutability] for details.
+    unsafe fn assume_nonmut_perform(self) -> Self::Target;
+}
+
+impl<A: Arguable> ArguableBehavior for *const A {
+    type Target = *mut A;
+    unsafe fn assume_nonmut_perform(self) -> Self::Target {
+        self as *mut A
+    }
+}
+
+impl<A: Arguable> ArguableBehavior for &A {
+    type Target = *mut A;
+    unsafe fn assume_nonmut_perform(self) -> Self::Target {
+        self as *const A as *mut A
+    }
+}
 
 
 ///Non-reference types that are ObjC FFI-safe.  This marker
@@ -79,9 +114,11 @@ unsafe impl<O: ObjcInstance> Arguable for *mut O {}
 /// This is unsealed because we want to allow structs to be declared as primitives in external crates.
 ///
 /// # See also
-/// [Arguable], which is implied by this trait.  The difference is that [Primitive] allows [PerformsSelector::perform_primitive()]
-/// family in its return type.
-pub unsafe trait Primitive: Arguable {}
+///  This used to inherit from [Arguable], but now they are distinct.  [Primitive] means it can appear as a return value,
+/// whereas [Arguable] can appear as an argument.  Generally speaking, parameters must be `mut` (or stepped up with [assume_nonmut_perform],
+/// whereas return types can be const.
+pub unsafe trait Primitive{}
+unsafe impl<P: Primitive> Primitive for *const P {}
 
 
 //This is safe because these are all ffi-safe.
@@ -113,15 +150,6 @@ unsafe impl Primitive for u8{}
 unsafe impl Arguable for u8{}
 
 
-unsafe impl Primitive for *const u8 {}
-unsafe impl Arguable for *const u8 {}
-unsafe impl Primitive for *mut u8 {}
-unsafe impl Arguable for *mut u8 {}
-
-unsafe impl Primitive for *const i8 {}
-unsafe impl Arguable for *const i8 {}
-unsafe impl Primitive for *mut i8 {}
-unsafe impl Arguable for *mut i8 {}
 
 unsafe impl Arguable for i64 {}
 unsafe impl Primitive for i64 {}

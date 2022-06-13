@@ -3,6 +3,7 @@ pub fn instance_impl(_type: &str) -> String{
     format!(r#"
     impl ::objr::bindings::ObjcInstance for {TYPE} {{
         }}
+        unsafe impl ::objr::bindings::Arguable for {TYPE} {{ }}
         impl std::fmt::Display for {TYPE} {{
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {{
                 use ::objr::foundation::NSObjectTrait;
