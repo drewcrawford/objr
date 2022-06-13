@@ -32,7 +32,7 @@ impl PartialEq for NSString {
 		unsafe {
 			//I am reasonably confident this doesn't allocate
 			let pool = ActiveAutoreleasePool::assume_autoreleasepool();
-			NSString::perform_primitive(self.assume_nonmut_perform(), Sel::isEqualToString_(),&pool, (other,) )
+			NSString::perform_primitive(self.assume_nonmut_perform(), Sel::isEqualToString_(),&pool, (other.assume_nonmut_perform(),) )
 		}
 	}
 }

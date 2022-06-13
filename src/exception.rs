@@ -2,7 +2,7 @@
 
 use std::ffi::c_void;
 
-///Declared in hard-exception.m and compiled with build.rs
+//Declared in hard-exception.m and compiled with build.rs
 extern "C" {
     fn hard_exception(call: extern "C" fn(*mut c_void), context: *mut c_void  );
 }

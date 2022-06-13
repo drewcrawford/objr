@@ -64,8 +64,9 @@ pub trait Arguments: Sized + Debug + crate::private::Sealed {
 /// family in its return type.
 pub unsafe trait Arguable  {}
 
-unsafe impl<O: ObjcInstance> Arguable for &O {}
-unsafe impl<O: ObjcInstance> Arguable for *const O {}
+//objc types can have references passed
+unsafe impl<O: ObjcInstance> Arguable for &mut O {}
+unsafe impl<O: ObjcInstance> Arguable for *mut O {}
 
 
 ///Non-reference types that are ObjC FFI-safe.  This marker
