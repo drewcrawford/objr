@@ -72,6 +72,9 @@ Because of negative trait bounds, we can't declare blanket impls for both ObjcIn
 
 Instead we implement Arguable on the wrapping type (such as the objc wrapping type).
 These cannot normally be constructed.
+
+The arguable part is only the exclusive (e.g. mutable) pointers.  Non-exclusive pointers
+must be opted in with [ArguableBehavior::assume_nonmut_perform()]
  */
 //primitive types can have exclusive references passed
 unsafe impl<O: Arguable> Arguable for &mut O {}
@@ -115,8 +118,10 @@ impl<A: Arguable> ArguableBehavior for &A {
 ///
 /// # See also
 ///  This used to inherit from [Arguable], but now they are distinct.  [Primitive] means it can appear as a return value,
-/// whereas [Arguable] can appear as an argument.  Generally speaking, parameters must be `mut` (or stepped up with [assume_nonmut_perform],
+/// whereas [Arguable] can appear as an argument.  Generally speaking, parameters must be `mut` (or stepped up with [ArguableBehavior::assume_nonmut_perform],
 /// whereas return types can be const.
+///
+/// This cannot inherit from Arguable because various types are primitives (for example, `*const Struct`) but we only allow arguing `*mut Struct`.
 pub unsafe trait Primitive{}
 unsafe impl<P: Primitive> Primitive for *const P {}
 

@@ -116,7 +116,7 @@ impl<T: ObjcClass> Class<T> {
         Self::perform(self as *const Class<T> as *mut _, Sel::alloc(), pool, ()) as *const T as *mut T
     }
 
-    ///See [ObjcInstanceBehavior::assume_nonmut_perform()]
+    ///See [ArguableBehavior::assume_nonmut_perform()]
     pub unsafe fn assume_nonmut_perform(&self) -> *mut Self {
         self as *const Self as *mut Self
     }
