@@ -96,7 +96,6 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     }
 
 }
-
 ///Behavior we define for any [ObjcInstance].
 pub trait ObjcInstanceBehavior {
 
@@ -458,6 +457,31 @@ macro_rules! objc_instance  {
         ::objr::bindings::__use!($pub no_construct,$objctype,$objctype);
     };
 }
+
+///Duplicate macro that does not emit debug.
+///todo: maybe we should refactor this to avoid DIY?
+macro_rules! objc_instance_no_debug  {
+    (
+        $(#[$attribute:meta])*
+        $pub:vis
+        struct $objctype:ident;
+    ) => {
+        //Idea here is we don't allow the type to be constructed where it is declared.
+        //Doing so would allow stack allocation.
+        //By nesting inside a separate module, the inner field is private.
+        ::objr::bindings::__mod!(no_construct,$objctype, {
+            $(#[$attribute])*
+            #[repr(transparent)]
+            #[derive(::objr::bindings::ObjcInstance)]
+            pub struct $objctype(core::ffi::c_void,
+            //mark as non-send
+            std::marker::PhantomData<*const ()>);
+        });
+        ::objr::bindings::__use!($pub no_construct,$objctype,$objctype);
+    };
+}
+pub(crate) use objc_instance_no_debug;
+
 
 /**
 Declares a newtype that wraps an existing objc instance type.

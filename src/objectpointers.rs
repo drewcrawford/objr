@@ -22,7 +22,7 @@ use crate::bindings::{ActiveAutoreleasePool,ObjcInstance};
 use std::marker::PhantomData;
 use crate::objcinstance::NonNullImmutable;
 use std::ptr::NonNull;
-use std::fmt::{Debug};
+use std::fmt::{Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 use crate::objcinstance::ObjcInstanceBehavior;
@@ -48,7 +48,6 @@ An objc object that is part of an autorelease pool
 
 The pool is used to lexically scope the lifetime of the pointer.
  */
-#[derive(Debug)]
 pub struct AutoreleasedCell<'a, T> {
     ptr: NonNullImmutable<T>,
     ///for lifetime
@@ -111,6 +110,12 @@ impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedCell<'a, T> where T:
         std::fmt::Display::fmt(ptr, f)
     }
 }
+impl<'a, T: ObjcInstance> std::fmt::Debug for AutoreleasedCell<'a, T> where T: std::fmt::Debug {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let ptr = unsafe {&*(self.ptr.as_ptr())};
+        ptr.fmt(f)
+    }
+}
 impl<'a, T: ObjcInstance> std::error::Error for AutoreleasedCell<'a, T> where T: std::error::Error {}
 impl<'a, T: PartialEq + ObjcInstance> PartialEq for AutoreleasedCell<'a, T> {
     fn eq(&self, other: &Self) -> bool {
@@ -134,7 +139,6 @@ An objc object that is part of an autorelease pool
 
 The pool is used to lexically scope the lifetime of the pointer.
  */
-#[derive(Debug)]
 pub struct AutoreleasedMutCell<'a, T> {
     ptr: NonNull<T>,
     ///for lifetime
@@ -186,6 +190,12 @@ impl<'a, T: ObjcInstance> std::fmt::Display for AutoreleasedMutCell<'a, T> where
         f.write_fmt(format_args!("{}",ptr))
     }
 }
+impl<'a, T: ObjcInstance> std::fmt::Debug for AutoreleasedMutCell<'a, T> where T: std::fmt::Debug {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let ptr = unsafe {&*(self.ptr.as_ptr())};
+        ptr.fmt(f)
+    }
+}
 
 impl<'a, T: PartialEq + ObjcInstance> PartialEq for AutoreleasedMutCell<'a, T> {
     fn eq(&self, other: &Self) -> bool {
@@ -231,7 +241,6 @@ This is often used at the border of an objc binding.
 
 For an elided 'best case' version, see `RefCell`.
  */
-#[derive(Debug)]
 pub struct StrongCell<T: ObjcInstance>(NonNullImmutable<T>);
 impl<T: ObjcInstance> StrongCell<T> {
     pub fn retaining(cell: &T) -> Self {
@@ -331,10 +340,19 @@ impl<T: ObjcInstance> std::ops::Deref for StrongCell<T> {
     }
 }
 
+//we need to punch through NonNullImmutable here to forward to the underlying type.
+//cannot be implemented on NonNullImmutable because we have no liveness guarantees there,
+//but we have them on object pointers.
 impl<'a, T: ObjcInstance> std::fmt::Display for StrongCell<T> where T: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let ptr = unsafe{ &*(self.0.as_ptr())};
         f.write_fmt(format_args!("{}",ptr))
+    }
+}
+impl<'a, T: ObjcInstance> std::fmt::Debug for StrongCell<T> where T: std::fmt::Debug {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let ptr = unsafe {&*(self.0.as_ptr())};
+        ptr.fmt(f)
     }
 }
 impl<T: PartialEq + ObjcInstance> PartialEq for StrongCell<T> {
@@ -361,7 +379,6 @@ unsafe impl<T: ObjcInstance + Sync> Sync for StrongCell<T> {}
 ///Like StrongCell, but restricted to a particular lifetime.
 ///
 /// This is typically used for objects that borrow some Rust data
-#[derive(Debug)]
 pub struct StrongLifetimeCell<'a, T: ObjcInstance>(NonNullImmutable<T>,PhantomData<&'a ()>);
 impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
     pub fn retaining(cell: &'a T) -> Self {
@@ -434,6 +451,12 @@ impl<'a, T: ObjcInstance> std::fmt::Display for StrongLifetimeCell<'a, T> where 
         f.write_fmt(format_args!("{}",ptr))
     }
 }
+impl<'a, T: ObjcInstance> std::fmt::Debug for StrongLifetimeCell<'a, T> where T: std::fmt::Debug {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let ptr = unsafe {&*(self.0.as_ptr())};
+        ptr.fmt(f)
+    }
+}
 impl<'a, T: PartialEq + ObjcInstance> PartialEq for StrongLifetimeCell<'a, T> {
     fn eq(&self, other: &Self) -> bool {
         let a: &T = self;
@@ -452,7 +475,6 @@ impl<'a, T: std::error::Error + ObjcInstance> std::error::Error for StrongLifeti
 
 
 ///[StrongCell], but mutable
-#[derive(Debug)]
 pub struct StrongMutCell<T: ObjcInstance>(NonNull<T>);
 impl<T: ObjcInstance> StrongMutCell<T> {
     pub fn retaining(cell: &mut T) -> Self {
@@ -554,6 +576,12 @@ impl<'a, T: ObjcInstance> std::fmt::Display for StrongMutCell<T> where T: std::f
         f.write_fmt(format_args!("{}",ptr))
     }
 }
+impl<'a, T: ObjcInstance> std::fmt::Debug for StrongMutCell<T> where T: std::fmt::Debug {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let ptr = unsafe {&*(self.0.as_ptr())};
+        ptr.fmt(f)
+    }
+}
 impl<T: PartialEq + ObjcInstance> PartialEq for StrongMutCell<T> {
     fn eq(&self, other: &Self) -> bool {
         let a: &T = self;
@@ -569,11 +597,3 @@ impl<T: Hash + ObjcInstance> Hash for StrongMutCell<T> {
     }
 }
 impl<T: std::error::Error + ObjcInstance> std::error::Error for StrongMutCell<T> {}
-
-
-
-
-
-
-
-

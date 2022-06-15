@@ -167,6 +167,26 @@ macro_rules! objc_class  {
     };
 }
 
+///Duplicate macro that calls objc_instance_no_debug.
+///
+/// todo: should we refactor this for DRY?
+macro_rules! objc_class_no_debug  {
+    (
+        $(#[$attribute:meta])*
+        $pub:vis
+        struct $objctype:ident {
+            @class($objcname:ident)
+        }
+    ) => {
+        ::objr::objcinstance::objc_instance_no_debug! {
+            $(#[$attribute])*
+            $pub struct $objctype;
+        }
+        ::objr::bindings::__objc_implement_class!{$objctype,$objcname}
+    };
+}
+pub(crate) use objc_class_no_debug;
+
 /**
 Declares a newtype that wraps an existing [objc_class].
 

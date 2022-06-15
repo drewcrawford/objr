@@ -344,3 +344,17 @@ fn perform_super() {
     assert!(super_description.starts_with("<NSNull:"));
 
 }
+
+#[test] fn arguable() {
+    let f = objc_nsstring!("example");
+    let borrowed: &NSString = &f;
+    unsafe{borrowed.assume_nonmut_perform()};
+
+    let ptr: *const NSString = &*f;
+    unsafe { ptr.assume_nonmut_perform() };
+
+    let option: Option<&NSString> = Some(f);
+    let as_ptr = option.as_ptr();
+    unsafe { as_ptr.assume_nonmut_perform() };
+
+}
