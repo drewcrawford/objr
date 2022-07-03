@@ -20,7 +20,7 @@ pub trait ObjcInstance: Arguable {}
 pub struct NonNullImmutable<T: ?Sized>(NonNull<T>);
 
 impl<T: ObjcInstance> NonNullImmutable<T> {
-    pub(crate)  fn from_reference(ptr: &T) -> Self {
+    pub(crate)  const fn from_reference(ptr: &T) -> Self {
         unsafe{ NonNullImmutable::assume_nonnil(ptr) }
     }
     ///Assumes the object has been retained and converts to a StrongCell.
@@ -61,7 +61,7 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
         AutoreleasedCell::assume_autoreleased(self.as_ref(), pool)
     }
     ///Converts to a raw pointer
-    pub(crate) fn as_ptr(&self) -> *const T {
+    pub(crate) const fn as_ptr(&self) -> *const T {
         self.0.as_ptr()
     }
     ///Assumes the passed pointer is non-nil.
@@ -70,7 +70,7 @@ impl<T: ObjcInstance> NonNullImmutable<T> {
     /// You must guarantee each of the following:
     /// * Pointer is non-nil
     /// * Points to a valid objc object of the type specified
-    pub(crate) unsafe fn assume_nonnil(ptr: *const T) -> Self {
+    pub(crate) const unsafe fn assume_nonnil(ptr: *const T) -> Self {
         Self(NonNull::new_unchecked(ptr as *mut T))
     }
 

@@ -18,14 +18,15 @@ See documentation for particular cells.
  */
 
 use core::ffi::{c_void};
-use crate::bindings::{ActiveAutoreleasePool,ObjcInstance};
+use crate::bindings::{ActiveAutoreleasePool,ObjcInstance,NSObject};
 use std::marker::PhantomData;
 use crate::objcinstance::NonNullImmutable;
 use std::ptr::NonNull;
 use std::fmt::{Formatter};
 use std::hash::{Hash, Hasher};
-use std::ops::{Deref, DerefMut};
+use std::ops::{DerefMut};
 use crate::objcinstance::ObjcInstanceBehavior;
+
 
 extern "C" {
     fn objc_autoreleaseReturnValue(object: *const c_void) -> *const c_void;
@@ -94,6 +95,16 @@ impl<'a, T: ObjcInstance> AutoreleasedCell<'a, T> {
             };
         std::mem::forget(self);
         r
+    }
+
+    ///Casts to an NSObject.
+    pub const fn into_nsobject(self) -> AutoreleasedCell<'a, NSObject> {
+        unsafe {
+            AutoreleasedCell{
+                marker: PhantomData,
+                ptr: NonNullImmutable::assume_nonnil(self.ptr.as_ptr() as *const _ as *const NSObject )
+            }
+        }
     }
 }
 impl<'a, T: ObjcInstance> std::ops::Deref for AutoreleasedCell<'a, T> {
@@ -169,6 +180,17 @@ impl<'a, T: ObjcInstance> AutoreleasedMutCell<'a, T> {
             marker: PhantomData::default()
         }
     }
+
+    ///Casts to an NSObject.
+    pub const fn into_nsobject(self) -> AutoreleasedMutCell<'a, NSObject> {
+        unsafe {
+            AutoreleasedMutCell {
+                ptr: NonNull::new_unchecked(self.ptr.as_ptr() as *mut _ as *mut NSObject ),
+                marker: PhantomData,
+            }
+        }
+    }
+
 }
 
 impl<'a, T: ObjcInstance> std::ops::Deref for AutoreleasedMutCell<'a, T> {
@@ -268,10 +290,10 @@ impl<T: ObjcInstance> StrongCell<T> {
     /// * That the type is retained
     /// * That the type is 'static, that is, it has no references to external (Rust) memory.
     ///   If this is not the case, see [StrongLifetimeCell].
-    pub unsafe fn assume_retained(reference: &T) -> Self {
-        if DEBUG_MEMORY {
-            println!("assume_retained {} {:p}",std::any::type_name::<T>(), reference);
-        }
+    pub const unsafe fn assume_retained(reference: &T) -> Self {
+        // if DEBUG_MEMORY {
+        //     println!("assume_retained {} {:p}",std::any::type_name::<T>(), reference);
+        // }
         StrongCell(NonNullImmutable::from_reference(reference))
     }
 
@@ -307,13 +329,20 @@ impl<T: ObjcInstance> StrongCell<T> {
     /// This is a 0-cost abstraction.  The retain/release calls of converting to the new cell type are elided.
     /// # Safety
     /// You must comply with all the safety guarantees of [ObjcInstanceBehavior::cast].
-    #[inline] pub unsafe fn cast_into<U: ObjcInstance>(self) -> StrongCell<U> {
-        if DEBUG_MEMORY {
-            println!("cast_into {} => {} {:p}",std::any::type_name::<T>(), std::any::type_name::<U>(), self.0.as_ptr());
-        }
-        let r = StrongCell::assume_retained(self.deref().cast());
+    #[inline] pub const unsafe fn cast_into<U: ObjcInstance>(self) -> StrongCell<U> {
+        // if DEBUG_MEMORY {
+        //     println!("cast_into {} => {} {:p}",std::any::type_name::<T>(), std::any::type_name::<U>(), self.0.as_ptr());
+        // }
+        let r = StrongCell::assume_retained(&*(self.0.as_ptr() as *const _ as *const U));
         std::mem::forget(self);
         r
+    }
+
+    ///Casts to an NSObject.
+    pub const fn into_nsobject(self) -> StrongCell<NSObject> {
+        unsafe {
+            self.cast_into()
+        }
     }
 }
 
@@ -408,11 +437,8 @@ impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
     /// in this object will remain valid for the lifetime specified, which is unbounded.
     /// * That all objc APIs which end up seeing this pointer will either only access it for the lifetime specified,
     ///   or will take some other step (usually, copying) the object into a longer lifetime.
-    pub unsafe fn assume_retained_limited(reference: &'a T) -> Self {
-        if DEBUG_MEMORY {
-            println!("assume_retained_limited {} {:p}",std::any::type_name::<T>(), reference);
-        }
-        StrongLifetimeCell(NonNullImmutable::from_reference(reference), PhantomData::default())
+    pub const unsafe fn assume_retained_limited(reference: &'a T) -> Self {
+        StrongLifetimeCell(NonNullImmutable::from_reference(reference), PhantomData )
     }
 
     ///Reinterprets this cell as a cell of another type.
@@ -421,10 +447,15 @@ impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
     /// This is a 0-cost abstraction.  The retain/release calls of converting to the new cell type are elided.
     /// # Safety
     /// You must comply with all the safety guarantees of [ObjcInstanceBehavior::cast].
-    #[inline] pub unsafe fn cast_into<U: ObjcInstance + 'a>(self) -> StrongLifetimeCell<'a, U>{
+    #[inline] pub const unsafe fn cast_into<U: ObjcInstance + 'a>(self) -> StrongLifetimeCell<'a, U>{
         let r = StrongLifetimeCell::assume_retained_limited(&*(self.0.as_ptr() as *const U));
         std::mem::forget(self);
         r
+    }
+    pub const fn into_nsobject(self) -> StrongLifetimeCell<'a, NSObject> {
+        unsafe {
+            self.cast_into()
+        }
     }
 }
 
@@ -502,6 +533,17 @@ impl<T: ObjcInstance> StrongMutCell<T> {
         let r: StrongCell<T> = unsafe{ StrongCell::assume_retained(&self) };
         std::mem::forget(self);
         r
+    }
+
+    ///Casts to NSObject
+    pub const fn into_nsobject(self) -> StrongMutCell<NSObject> {
+        unsafe {
+            let r = StrongMutCell {
+                0: NonNull::new_unchecked(self.0.as_ptr() as *mut _ as *mut NSObject)
+            };
+            std::mem::forget(self);
+            r
+        }
     }
 
 }
