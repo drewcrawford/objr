@@ -40,7 +40,8 @@ enum ParsedType {
     Class,
     Unknown,
     //"Special" types, not part of the standard, but implemented for convenience
-    CGRect
+    CGRect,
+    CGSize,
 }
 
 impl ParsedType {
@@ -76,7 +77,7 @@ impl ParsedType {
             ParsedType::Class => "@".to_owned(),
             ParsedType::Unknown => "?".to_owned(),
             ParsedType::CGRect => "{CGRect={CGPoint=dd}{CGSize=dd}}".to_owned(),
-
+            ParsedType::CGSize => "{CGSize=dd}".to_owned(),
         }
     }
 
@@ -119,10 +120,13 @@ impl ParsedType {
             ParsedType::Class => Ok(8),
             ParsedType::Unknown => Err(()),
             ParsedType::CGRect => Ok(32),
+            ParsedType::CGSize => Ok(16),
         }
     }
     fn parse(str: &str) -> Self {
         match str {
+            "CGSize" => ParsedType::CGSize,
+            "NSSize" => ParsedType::CGSize,
             "CGRect" => ParsedType::CGRect,
             "NSRect" => ParsedType::CGRect,
             "id" => ParsedType::Object,
