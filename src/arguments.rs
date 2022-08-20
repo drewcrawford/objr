@@ -5,12 +5,15 @@
 use super::bindings::*;
 use std::ffi::c_void;
 use std::fmt::Debug;
+use std::mem::size_of;
 
 #[link(name="objc", kind="dylib")]
 extern "C" {
     fn objc_msgSend();
+    fn objc_msgSend_stret();
     //Undocumented, but part of ABI.  This call goes directly to super.  Do not pass go, do not try `self`.
     fn objc_msgSendSuper2();
+    fn objc_msgSendSuper2_stret();
 }
 
 //defined in https://opensource.apple.com/source/objc4/objc4-371.2/runtime/message.h
@@ -122,7 +125,9 @@ impl<A: Arguable> ArguableBehavior for &A {
 /// whereas return types can be const.
 ///
 /// This cannot inherit from Arguable because various types are primitives (for example, `*const Struct`) but we only allow arguing `*mut Struct`.
-pub unsafe trait Primitive{}
+pub unsafe trait Primitive: Sized {
+}
+
 unsafe impl<P: Primitive> Primitive for *const P {}
 
 
@@ -175,7 +180,24 @@ macro_rules! arguments_impl {
         impl<$($type:Arguable),*> Arguments for ($($type,)*) where $($type: Debug),* {
            #[inline] unsafe fn invoke_primitive<R: Primitive>(obj: *mut c_void, sel: Sel, _pool: &ActiveAutoreleasePool, ($($identifier,)*): Self) -> R {
                //autoreleasepool is encouraged by signature but not used
-               let impcast = objc_msgSend as unsafe extern fn();
+
+                let impcast = if cfg!(target_arch="x86_64") {
+                    //this condition seems to broadly agree with clang
+                    if size_of::<Self>() <= 16 {
+                        objc_msgSend
+                    }
+                    else {
+                        objc_msgSend_stret
+                    }
+                    /*NOTE: For "long double" we need fpret, but there does not seem to be an equivalent rust type.
+
+                    In general there isn't a type on apple silicon either, I think this is not widely used by the runtime and so it can
+                    be ignored.
+                   */
+                }
+                else {
+                    objc_msgSend
+                };
                 let imp: unsafe extern fn(*mut c_void, Sel $(, $type)*) -> R =
                     std::mem::transmute(impcast);
                 imp(obj, sel $(, $identifier)*)
@@ -185,7 +207,21 @@ macro_rules! arguments_impl {
                    receiver: obj,
                    class: class
                };
-               let impcast = objc_msgSendSuper2 as unsafe extern fn();
+               let impcast = if cfg!(target_arch="x86_64") {
+                    //this condition seems to broadly agree with clang
+                    if size_of::<Self>() <= 16 {
+                        objc_msgSendSuper2
+                    }
+                    else {
+                        objc_msgSendSuper2_stret
+                    }
+                    /*NOTE: I verified in clang that, for "long double" case, we still use objc_msgSendSuper2.  I have no explanation
+                    for why there is no fpret verison.  However since we don't deal with fpret anyway, this is somewhat irrelevant.
+                     */
+                }
+                else {
+                    objc_msgSendSuper2
+                };
                 let imp: unsafe extern fn(*const ObjcSuper, Sel $(, $type)*) -> R =
                     std::mem::transmute(impcast);
                 imp(&objc_super, sel $(, $identifier)*)
