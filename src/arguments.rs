@@ -183,7 +183,7 @@ macro_rules! arguments_impl {
 
                 let impcast = if cfg!(target_arch="x86_64") {
                     //this condition seems to broadly agree with clang
-                    if size_of::<Self>() <= 16 {
+                    if size_of::<R>() <= 16 {
                         objc_msgSend
                     }
                     else {
@@ -209,7 +209,7 @@ macro_rules! arguments_impl {
                };
                let impcast = if cfg!(target_arch="x86_64") {
                     //this condition seems to broadly agree with clang
-                    if size_of::<Self>() <= 16 {
+                    if size_of::<R>() <= 16 {
                         objc_msgSendSuper2
                     }
                     else {
