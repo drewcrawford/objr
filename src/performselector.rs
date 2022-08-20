@@ -12,7 +12,7 @@ use crate::class::AnyClass;
 ///Types that can be performedSelector.
 ///
 /// # Stability
-/// Do not implement this type directly.  Instead use [objc_instance!] or [objc_class!].
+/// Do not implement this type directly.  Instead use [crate::bindings::objc_instance!] or [crate::bindings::objc_class!].
 ///
 /// # Safety
 /// This requires the underlying type to be FFI-safe and a valid ObjC pointer.
@@ -26,7 +26,7 @@ unsafe impl<O: ObjcInstance> PerformablePointer for O {}
 
 ///Trait where we can also call methods on super.  This requires knowing a superclass.
 /// # Stability
-/// Do not implement this type directly.  Instead use [objc_instance!] or [objc_class!].
+/// Do not implement this type directly.  Instead use [crate::bindings::objc_instance!] or [crate::bindings::objc_class!].
 ///
 /// # Safety
 /// This requires the underlying type to be FFI-safe and a valid Objc pointer.
@@ -53,11 +53,11 @@ extern {
 ///Trait that provides `PerformSelector` implementations.  Autoimplelmented for `T: PerformablePointer`
 ///
 /// # Stability
-/// Do not implement this trait yourself.  Instead use [objc_instance!] or [objc_class!]
+/// Do not implement this trait yourself.  Instead use [crate::bindings::objc_instance!] or [crate::bindings::objc_class!]
 pub trait PerformsSelector  {
     ///Performs selector, returning a primitive type.
     /// # Safety
-    /// See the safety section of [objc_instance!].
+    /// See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_primitive<A: Arguments, R: Primitive>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> R;
 
     ///Performs, returning the specified [ObjcInstance].  You must coerce this into some type according to your knowledge of ObjC convention.
@@ -67,7 +67,7 @@ pub trait PerformsSelector  {
     /// By convention, the error value is an autoreleased [NSError].
     ///
     ///# Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_result<'a, A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &'a ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'a, NSError>>;
 
     ///Performs, calling a function of pattern `- (BOOL)example:(Parameter*)parameter... error:(NSError **)error;`
@@ -78,7 +78,7 @@ pub trait PerformsSelector  {
     /// By convention, the error value is an autoreleased [NSError].
     ///
     /// # Safety
-    /// See the safety section of [objc_instance!].
+    /// See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_bool_result<'a, A: Arguments>(receiver: *mut Self, selector: Sel, pool: &'a ActiveAutoreleasePool, args: A) -> Result<(),AutoreleasedCell<'a, NSError>>;
 
     ///Performs, returning the specified [ObjcInstance].
@@ -86,7 +86,7 @@ pub trait PerformsSelector  {
     /// This variant assumes 1) the calling convention is +0, 2) the type returned to you is +1.  The implementation
     /// knows a trick to perform this conversion faster than you can do it manually.
     ///# Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> *const R;
 
     ///Performs, returning the specified [ObjcInstance].
@@ -95,7 +95,7 @@ pub trait PerformsSelector  {
     /// knows a trick to perform this conversion faster than you can do it manually.
     ///By convention, the error value is an autoreleased [NSError].
     ///# Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_result_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'_, NSError>>;
 }
 
@@ -153,13 +153,13 @@ pub trait PerformsSelectorSuper {
     ///Performs selector, returning a primitive type.
     ///
     /// # Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_super_primitive<A: Arguments, R: Primitive>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> R;
 
     ///Performs, returning the specified [ObjcInstance].  You must coerce this into some type according to your knowledge of ObjC convention.
     ///
     /// # Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_super<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> *const R;
     ///Performs, returning the result of the specified [ObjcInstance].  You must coerce this into some type according to your knowledge of ObjC convention.
     ///
@@ -167,7 +167,7 @@ pub trait PerformsSelectorSuper {
     ///
     ///
     /// # Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_super_result<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'_, NSError>>;
 
     ///Performs, returning the specified [ObjcInstance].
@@ -177,7 +177,7 @@ pub trait PerformsSelectorSuper {
     ///
     ///
     /// # Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_super_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> *const R;
 
     ///Performs, returning the specified [ObjcInstance].
@@ -187,7 +187,7 @@ pub trait PerformsSelectorSuper {
     ///By convention, the error value is an autoreleased [NSError].
     ///
     /// # Safety
-    ///See the safety section of [objc_instance!].
+    ///See the safety section of [crate::bindings::objc_instance!].
     unsafe fn perform_super_result_autorelease_to_retain<A: Arguments, R: ObjcInstance>(receiver: *mut Self, selector: Sel, pool: &ActiveAutoreleasePool, args: A) -> Result<*const R, AutoreleasedCell<'_, NSError>>;
 
 }

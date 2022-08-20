@@ -11,7 +11,7 @@ extern "C" {
 #[repr(transparent)]
 pub struct Sel(*const c_void);
 impl Sel {
-    ///Dynamically creates `Sel` from a string by quering the ObjC runtime.  Note that in most cases, [objc_selector_group!()] is a faster method
+    ///Dynamically creates `Sel` from a string by quering the ObjC runtime.  Note that in most cases, [crate::bindings::objc_selector_group!()] is a faster method
     /// to get selectors.
     pub fn from_str(string: &str) -> Self {
         let cstring = CString::new(string).unwrap();

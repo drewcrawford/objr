@@ -8,7 +8,7 @@ use crate::autorelease::ActiveAutoreleasePool;
 ///
 /// # Stability
 /// It is not stable API to implement this trait yourself.  Instead, declare a conforming
-/// type via [objc_instance!] macro.
+/// type via [crate::bindings::objc_instance!] macro.
 ///
 pub trait ObjcInstance: Arguable {}
 
@@ -232,7 +232,7 @@ impl<O: ObjcInstance> NullableCellBehavior for Option<StrongCell<O>> {
 }
 
 /**
-Defines a struct (binding) for a specific ObjC type.  This doesn't assume the type is a class, if it is a class consider [objc_class!].
+Defines a struct (binding) for a specific ObjC type.  This doesn't assume the type is a class, if it is a class consider [crate::bindings::objc_class!].
 
 The type will automagically conform to [objr::bindings::ObjcInstance], but will not conform to [objr::bindings::ObjcClass].
 
@@ -418,7 +418,7 @@ on top': it serves as a compile-time assertion that some function accepts or ret
 actually constrain the runtime behavior, not does specialization create a distinct type.
 
 The best way to project this in Rust is to project the "bolted on top" model.  Therefore (and also for technical reasons), this
-macro does not accept generic arguments, but [objc_instance_newtype] does.
+macro does not accept generic arguments, but [crate::bindings::objc_instance_newtype] does.
 
 ## Multithreading
 
@@ -502,7 +502,7 @@ let s: &mut SecondExample = todo!();
 let e: &mut NSExample = s.into();
 ```
 
-unlike [objc_instance!], this macro supports generic types, allowing you to wrap some other type with generics bolted on top.
+unlike [crate::bindings::objc_instance!], this macro supports generic types, allowing you to wrap some other type with generics bolted on top.
 
 At the moment, restrictions on generic arguments are not supported at the type level, but you can add them on your own impl blocks
 

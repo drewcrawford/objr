@@ -499,7 +499,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 /// * `*const c_void` or `*mut c_void`.
 /// * `*const Example` or `*mut Example` (it's memory-compatible with the `*const c_void`).  Convenience functions are implemented
 ///   on the wrapper type so this may be the useful one.  Keep in mind that it's up to you to not mutate from an immutable context.
-///   For more info, see [objc_instance!#safety]
+///   For more info, see [crate::bindings::objc_instance!#safety]
 ///
 /// For the selector argument, typically you use `Sel`.  `*const c_void` and `*const c_char` are also allowed.
 ///
