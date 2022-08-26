@@ -59,7 +59,7 @@ impl NSString {
 		}
 	}
 	///Copies the string into foundation storage
-	pub fn with_str_copy(str: &str, pool: &ActiveAutoreleasePool) -> StrongCell<NSString> {
+	pub fn with_str_copy(str: &str, pool: &ActiveAutoreleasePool) -> StrongMutCell<NSString> {
 		unsafe {
 			let instance = Self::class().alloc(pool);
 			let bytes = str.as_bytes().as_ptr();
@@ -68,7 +68,7 @@ impl NSString {
 			let instance: *const NSString = Self::perform(instance,Sel::initWithBytes_length_encoding(),pool, (bytes.assume_nonmut_perform(),len,NSUTF8StringEncoding));
 			//although this method is technically nullable, the fact that the string is already statically known to be utf8
 			//suggests we should be fine
-			NonNullImmutable::assume_nonnil(instance).assume_retained()
+			NonNullImmutable::assume_nonnil(instance).assume_retained().assume_mut()
 		}
 	}
 }

@@ -158,6 +158,7 @@ mod nserror;
 mod subclass;
 mod exception;
 mod threadsafety;
+mod cast;
 
 
 ///This prelude provides a "foundation-like" experience.  This brings
@@ -199,6 +200,7 @@ pub mod bindings {
     pub use crate::objc_subclass;
     pub use crate::objc_instance_newtype;
     pub use crate::objc_class_newtype;
+    pub use crate::objc_cast;
     pub use procmacro::{__objc_implement_class,ObjcInstance,__static_expr,__static_extern,__static_asciiz_ident_as_selector,__static_asciiz_ident_as_type_encoding,__count,__concat_idents,__static_asciiz,__static_expr3};
     pub use super::class::AnyClass;
     pub use super::arguments::{Primitive,Arguable,ArguableBehavior};
