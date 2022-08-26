@@ -108,6 +108,12 @@ impl<A: Arguable> ArguableBehavior for &A {
         self as *const A as *mut A
     }
 }
+impl<A: Arguable> ArguableBehavior for Option<&A> {
+    type Target = *mut A;
+    unsafe fn assume_nonmut_perform(self) -> Self::Target {
+        self.map(|x| x as *const A as *mut A).unwrap_or(std::ptr::null_mut())
+    }
+}
 
 
 ///Non-reference types that are ObjC FFI-safe.  This marker
