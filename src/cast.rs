@@ -12,6 +12,12 @@ Arguments:
 * `cast` - The name of the cast function to declare.  Typical values are `as_totype`.
 * `cast_mut` - The name of the cast function to declare.  Typical values are `as_totype_mut`.
 
+# Safety
+
+You must annotate the `to` argument with the `unsafe` modifier.  This is to signify that we will not do any checking that
+the type is actually a subtype of the type we are casting to.  If you cast to a type that is not a subtype, you will get
+undefined behavior.
+
 # Example
 
 ```
@@ -26,7 +32,7 @@ objc_class! {
 objc_instance! {
     struct CFString;
 }
-objc_cast!(MyNSString,CFString,as_cfstring,as_cfstring_mut);
+objc_cast!(MyNSString,unsafe CFString,as_cfstring,as_cfstring_mut);
 
 
 let a: &MyNSString = unsafe{objc_nsstring!("hello").cast()};
@@ -49,7 +55,7 @@ objc_class! {
 objc_instance! {
     struct CFString;
 }
-objc_cast!(MyNSString,CFString,as_cfstring,as_cfstring_mut);
+objc_cast!(MyNSString,unsafe CFString,as_cfstring,as_cfstring_mut);
 
 autoreleasepool(|pool| {
     let mut nsstring = NSString::with_str_copy("hello", pool);
@@ -61,7 +67,7 @@ autoreleasepool(|pool| {
 */
 #[macro_export]
 macro_rules! objc_cast {
-    ($from:ty,$to:ty,$methname:ident,$methname_mut:ident) => {
+    ($from:ty,unsafe $to:ty,$methname:ident,$methname_mut:ident) => {
         impl $from {
             pub fn $methname(&self) -> &$to {
                 unsafe {
