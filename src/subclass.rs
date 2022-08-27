@@ -7,7 +7,7 @@ macro_rules! __objc_sublcass_implpart_method_prelude {
             //in objc-runtime.h this is declared as SEL
             name: *const u8,
             types: *const u8,
-            imp: *const c_void
+            imp: *const core::ffi::c_void
         }
 
         //need a variably-sized type?  Const generics to the rescue!
@@ -30,7 +30,6 @@ macro_rules! __objc_subclass_implpart_a {
     //these ivars are imported from external scope to achieve macro hygiene
     $CLASS_NAME:ident,
     $NSSUPER_CLASS:ident,$OBJC_EMPTY_CACHE:ident) => {
-        use core::ffi::c_void;
         objr::bindings::__mod!(subclass_impl_,$identifier, {
             #[repr(C)]
             pub struct IvarListT {
@@ -209,7 +208,7 @@ macro_rules! __objc_subclass_implpart_method_list {
                                     MethodT {
                                         name: & objr::bindings::__concat_idents!("METHNAME_",$methodfn) as *const u8,
                                         types: & objr::bindings::__concat_idents!("METHTYPE_",$methodfn) as *const u8,
-                                        imp: $methodfn as *const c_void
+                                        imp: $methodfn as *const core::ffi::c_void
                                     }
                                 ),*
                             ]
