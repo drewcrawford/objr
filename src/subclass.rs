@@ -28,7 +28,7 @@ macro_rules! __objc_sublcass_implpart_method_prelude {
 macro_rules! __objc_subclass_implpart_a {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     //these ivars are imported from external scope to achieve macro hygiene
-    $CLASS_NAME:ident,$CLASST:ident,
+    $CLASS_NAME:ident,
     $NSSUPER_CLASS:ident,$OBJC_EMPTY_CACHE:ident) => {
         use core::ffi::c_void;
         objr::bindings::__mod!(subclass_impl_,$identifier, {
@@ -72,6 +72,21 @@ macro_rules! __objc_subclass_implpart_a {
             pub const CLASS_FLAGS: u32 =RO_FLAGS_HIDDEN | RO_FLAGS_ARR;
 
             pub const METACLASS_FLAGS: u32 =RO_FLAGS_METACLASS | RO_FLAGS_HIDDEN | RO_FLAGS_ARR;
+
+            //note: Class RoT instance needs to wait for ivar configuration
+            //it cannot appear in the prelude.
+
+            //However we can declare class type
+            #[repr(C)]
+            pub struct CLASST {
+                //points to metaclass
+                pub isa: *const *const c_void,
+                pub superclass: *const *const c_void,
+                // needs to be populated with extern OBJC_EMPTY_CACHE symbol
+                pub cache:  *const *const c_void,
+                pub vtable: *const c_void,
+                pub ro: *const ClassRoT
+            }
         });
         //these redelcarations need to be migrated out of here
         type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::IvarListT");
@@ -81,7 +96,7 @@ macro_rules! __objc_subclass_implpart_a {
         const RO_FLAGS_ARR: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_ARR");
         const CLASS_FLAGS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::CLASS_FLAGS");
         const METACLASS_FLAGS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::METACLASS_FLAGS");
-
+        type CLASST = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::CLASST");
         objr::bindings::__static_asciiz!("__TEXT,__objc_classname,cstring_literals",$CLASS_NAME,$objcname);
 
 
@@ -106,20 +121,7 @@ macro_rules! __objc_subclass_implpart_a {
             });
         );
 
-        //note: Class RoT instance needs to wait for ivar configuration
-        //it cannot appear in the prelude.
 
-        //However we can declare class type
-        #[repr(C)]
-        pub struct $CLASST {
-            //points to metaclass
-            isa: *const *const c_void,
-            superclass: *const *const c_void,
-            // needs to be populated with extern OBJC_EMPTY_CACHE symbol
-            cache:  *const *const c_void,
-            vtable: *const c_void,
-            ro: *const ClassRoT
-        }
 
         //And some external symbols (only relies on $superclass)
         #[link(name="CoreFoundation",kind="framework")]
@@ -145,7 +147,7 @@ macro_rules! __objc_subclass_implpart_a {
 
         //metaclass instance can go in prelude
         objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_METACLASS_$_",$objcname,
-            static METACLASS: objr::bindings::_SyncWrapper<$CLASST> = objr::bindings::_SyncWrapper($CLASST {
+            static METACLASS: objr::bindings::_SyncWrapper<CLASST> = objr::bindings::_SyncWrapper(CLASST {
                 isa: unsafe{ &NSOBJECT_METACLASS},
                 superclass: unsafe{ &NSSUPER_METACLASS},
                 cache: unsafe{ &OBJC_EMPTY_CACHE},
@@ -350,7 +352,7 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
     ) => {
         objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
         //declare these identifiers into our local scope
-        CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //payload variant requires an ivar list
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
 
@@ -368,7 +370,7 @@ macro_rules! __objc_subclass_impl_no_payload_no_methods {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident) => {
                 objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
         //declare these identifiers into our local scope
-        CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
                 objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,ClassRoT,CLASS_FLAGS,
                 (), //for the no-payload case, use an empty type
@@ -391,7 +393,7 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
 
                 objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
                 //declare these identifiers into our local scope
-                CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
                 objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),*], METHOD_LIST);
 
@@ -416,7 +418,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
     {
         objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
                 //declare these identifiers into our local scope
-                CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //variant with payload
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
         //variant with methods
