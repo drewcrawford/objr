@@ -30,7 +30,7 @@ macro_rules! __objc_subclass_implpart_a {
     //these ivars are imported from external scope to achieve macro hygiene
     $CLASS_NAME:ident,
     $NSSUPER_CLASS:ident,$OBJC_EMPTY_CACHE:ident) => {
-        objr::bindings::__mod!(subclass_impl_,$identifier, {
+        objr::bindings::__mod!(subclass_impl_,$objcname, {
             #[repr(C)]
             pub struct IvarListT {
                 //some dispute about whether this is the size of ivar_list_t,
@@ -266,7 +266,7 @@ macro_rules! __objc_subclass_implpart_ivar_list {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __objc_subclass_impl_payload_access {
-    ($pub:vis, $identifier:ident,$payload:ty) => {
+    ($pub:vis, $identifier:ident,$payload:ty,$objcname:ident) => {
         impl $identifier {
             /// Gets a mutable reference to the underlying payload.
             ///
@@ -290,7 +290,7 @@ macro_rules! __objc_subclass_impl_payload_access {
 
                 //Note that we need to read_volatile here to get the real runtime payload,
                 //not the payload known at compile time
-                let payload_addr = self_addr.offset(std::ptr::read_volatile(&objr::bindings::__concat_3_idents!("ivar_list_",$identifier,"::FRAGILE_BASE_CLASS_OFFSET")) as isize);
+                let payload_addr = self_addr.offset(std::ptr::read_volatile(&objr::bindings::__concat_3_idents!("ivar_list_",$objcname,"::FRAGILE_BASE_CLASS_OFFSET")) as isize);
 
                 let payload_typed_addr =std::mem::transmute(payload_addr);
                 payload_typed_addr
@@ -310,13 +310,13 @@ macro_rules! __objc_subclass_implpart_finalize {
         $NSSUPER_CLASS:expr,$OBJC_EMPTY_CACHE:expr
     ) => {
         //declare class
-        objr::bindings::__mod!(subclass_finalize_,$identifier, {
-            type CLASST = objr::bindings::__concat_3_idents!("super::subclass_impl_",$identifier,"::CLASST");
+        objr::bindings::__mod!(subclass_finalize_,$objcname, {
+            type CLASST = objr::bindings::__concat_3_idents!("super::subclass_impl_",$objcname,"::CLASST");
             objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_CLASS_$_",$objcname,
                 pub static CLASS: objr::bindings::_SyncWrapper<CLASST> = objr::bindings::_SyncWrapper(CLASST {
-                    isa: unsafe{ std::mem::transmute(& objr::bindings::__concat_3_idents!("super::subclass_impl_", $identifier, "::METACLASS") )} ,
-                    superclass: unsafe{ & objr::bindings::__concat_3_idents!("super::subclass_impl_", $identifier, "::NSSUPER_CLASS") },
-                    cache: unsafe{ &objr::bindings::__concat_3_idents!("super::subclass_impl_", $identifier, "::OBJC_EMPTY_CACHE") },
+                    isa: unsafe{ std::mem::transmute(& objr::bindings::__concat_3_idents!("super::subclass_impl_", $objcname, "::METACLASS") )} ,
+                    superclass: unsafe{ & objr::bindings::__concat_3_idents!("super::subclass_impl_", $objcname, "::NSSUPER_CLASS") },
+                    cache: unsafe{ &objr::bindings::__concat_3_idents!("super::subclass_impl_", $objcname, "::OBJC_EMPTY_CACHE") },
                     vtable: std::ptr::null(),
                     ro: &objr::bindings::__concat_3_idents!("super::class_ro_",$objcname,"::CLASS_RO").0
                 });
@@ -336,7 +336,7 @@ macro_rules! __objc_subclass_implpart_finalize {
         //Should be safe because we're declaring the type
         impl objr::bindings::ObjcClass for $identifier {
             #[inline] fn class() -> &'static ::objr::bindings::Class<Self> {
-                unsafe{ &*(&(objr::bindings::__concat_3_idents!("subclass_finalize_",$identifier,"::CLASS")).0 as *const _ as *const ::objr::bindings::Class<Self>) }
+                unsafe{ &*(&(objr::bindings::__concat_3_idents!("subclass_finalize_",$objcname,"::CLASS")).0 as *const _ as *const ::objr::bindings::Class<Self>) }
             }
         }
     }
@@ -355,11 +355,11 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
         //payload variant requires an ivar list
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload);
 
-        objr::__objc_subclass_implpart_class_ro!($objcname,$payload,CLASS_NAME,&(objr::bindings::__concat_3_idents!("super::ivar_list_",$identifier,"::IVAR_LIST")).0,
+        objr::__objc_subclass_implpart_class_ro!($objcname,$payload,CLASS_NAME,&(objr::bindings::__concat_3_idents!("super::ivar_list_",$objcname,"::IVAR_LIST")).0,
             std::ptr::null() //Since we have no methods, we pass null for METHODLISTEXPR
         );
         objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
-        objr::__objc_subclass_impl_payload_access!($pub,$identifier,$payload);
+        objr::__objc_subclass_impl_payload_access!($pub,$identifier,$payload,$objcname);
 
     }
 }
@@ -425,11 +425,11 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
         objr::__objc_subclass_implpart_class_ro!($objcname,
         $payload,
         CLASS_NAME,
-        unsafe {std::mem::transmute(&(objr::bindings::__concat_3_idents!("super::ivar_list_",$identifier,"::IVAR_LIST")).0)},
+        unsafe {std::mem::transmute(&(objr::bindings::__concat_3_idents!("super::ivar_list_",$objcname,"::IVAR_LIST")).0)},
         unsafe{ std::mem::transmute(&objr::bindings::__concat_3_idents!("super::implpart_method_list_",$objcname,"::METHOD_LIST").0) }
         );
         objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
-        objr::__objc_subclass_impl_payload_access!($pub, $identifier,$payload);
+        objr::__objc_subclass_impl_payload_access!($pub, $identifier,$payload,$objcname);
     }
 }
 
@@ -838,6 +838,18 @@ mod test {
                 methods: [
                     "-(id) init" => unsafe sample
                 ]
+            }
+        }
+    }
+
+    mod distinct_names {
+        use objr::bindings::*;
+        objc_subclass! {
+            struct A {
+                @class(ANameThatIsntA)
+                @superclass(NSObject)
+                payload: (),
+                methods: []
             }
         }
     }
