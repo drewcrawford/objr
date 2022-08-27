@@ -300,17 +300,20 @@ macro_rules! __objc_subclass_implpart_finalize {
     //these are imported into our scope
         $NSSUPER_CLASS:expr,$OBJC_EMPTY_CACHE:expr
     ) => {
-        type CLASST = objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::CLASST");
         //declare class
-        objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_CLASS_$_",$objcname,
-            pub static CLASS: objr::bindings::_SyncWrapper<CLASST> = objr::bindings::_SyncWrapper(CLASST {
-                isa: unsafe{ std::mem::transmute(& objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::METACLASS") )} ,
-                superclass: unsafe{ & objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::NSSUPER_CLASS") },
-                cache: unsafe{ &objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::OBJC_EMPTY_CACHE") },
-                vtable: std::ptr::null(),
-                ro: &objr::bindings::__concat_3_idents!("class_ro_",$objcname,"::CLASS_RO").0
-            });
-        );
+        objr::bindings::__mod!(subclass_finalize_,$identifier, {
+            type CLASST = objr::bindings::__concat_3_idents!("super::subclass_impl_",$identifier,"::CLASST");
+            objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_CLASS_$_",$objcname,
+                pub static CLASS: objr::bindings::_SyncWrapper<CLASST> = objr::bindings::_SyncWrapper(CLASST {
+                    isa: unsafe{ std::mem::transmute(& objr::bindings::__concat_3_idents!("super::subclass_impl_", $identifier, "::METACLASS") )} ,
+                    superclass: unsafe{ & objr::bindings::__concat_3_idents!("super::subclass_impl_", $identifier, "::NSSUPER_CLASS") },
+                    cache: unsafe{ &objr::bindings::__concat_3_idents!("super::subclass_impl_", $identifier, "::OBJC_EMPTY_CACHE") },
+                    vtable: std::ptr::null(),
+                    ro: &objr::bindings::__concat_3_idents!("super::class_ro_",$objcname,"::CLASS_RO").0
+                });
+            );
+        });
+
 
         use objr::bindings::{objc_instance};
 
@@ -325,7 +328,7 @@ macro_rules! __objc_subclass_implpart_finalize {
         //Should be safe because we're declaring the type
         impl objr::bindings::ObjcClass for $identifier {
             #[inline] fn class() -> &'static ::objr::bindings::Class<Self> {
-                unsafe{ &*(&CLASS.0 as *const _ as *const ::objr::bindings::Class<Self>) }
+                unsafe{ &*(&(objr::bindings::__concat_3_idents!("subclass_finalize_",$identifier,"::CLASS")).0 as *const _ as *const ::objr::bindings::Class<Self>) }
             }
         }
     }
