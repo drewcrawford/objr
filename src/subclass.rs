@@ -830,16 +830,16 @@ mod test {
                 ]
             }
         }
-        // objc_subclass! {
-        //     struct Methods2 {
-        //         @class(Methods2)
-        //         @superclass(NSObject)
-        //         payload: (),
-        //         methods: [
-        //             "-(id) init" => unsafe sample
-        //         ]
-        //     }
-        // }
+        objc_subclass! {
+            struct Methods2 {
+                @class(Methods2)
+                @superclass(NSObject)
+                payload: (),
+                methods: [
+                    "-(id) init" => unsafe sample
+                ]
+            }
+        }
     }
 
 }
