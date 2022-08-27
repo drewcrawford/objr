@@ -139,9 +139,6 @@ macro_rules! __objc_subclass_implpart_a {
                 });
             );
         });
-        //these redelcarations need to be migrated out of here
-        type CLASST = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::CLASST");
-
     }
 }
 
@@ -298,11 +295,12 @@ macro_rules! __objc_subclass_impl_payload_access {
 macro_rules! __objc_subclass_implpart_finalize {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     //these are imported into our scope
-        $CLASST:ident,$CLASS_RO:ident,$NSSUPER_CLASS:expr,$OBJC_EMPTY_CACHE:expr
+        $CLASS_RO:ident,$NSSUPER_CLASS:expr,$OBJC_EMPTY_CACHE:expr
     ) => {
+        type CLASST = objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::CLASST");
         //declare class
         objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_CLASS_$_",$objcname,
-            pub static CLASS: objr::bindings::_SyncWrapper<$CLASST> = objr::bindings::_SyncWrapper($CLASST {
+            pub static CLASS: objr::bindings::_SyncWrapper<CLASST> = objr::bindings::_SyncWrapper(CLASST {
                 isa: unsafe{ std::mem::transmute(& objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::METACLASS") )} ,
                 superclass: unsafe{ & objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::NSSUPER_CLASS") },
                 cache: unsafe{ &objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::OBJC_EMPTY_CACHE") },
@@ -346,7 +344,7 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
         objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,$payload,CLASS_NAME,&IVAR_LIST.0,
             std::ptr::null() //Since we have no methods, we pass null for METHODLISTEXPR
         );
-        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASST,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         objr::__objc_subclass_impl_payload_access!($pub,$identifier,$payload,FRAGILE_BASE_CLASS_OFFSET);
 
     }
@@ -367,7 +365,7 @@ macro_rules! __objc_subclass_impl_no_payload_no_methods {
                 //METHLISTEXPRESSION: Use the null pointer since we have no methods
                     std::ptr::null()
                 );
-                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASST,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
     }
 }
 
@@ -392,7 +390,7 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
                 //transmute our method_list into c_void
                     unsafe{ std::mem::transmute(&METHOD_LIST.0) }
                 );
-                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASST,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
     }
 }
 
@@ -416,7 +414,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
         unsafe {std::mem::transmute(&IVAR_LIST.0)},
         unsafe{ std::mem::transmute(&METHOD_LIST.0) }
         );
-        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASST,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         objr::__objc_subclass_impl_payload_access!($pub, $identifier,$payload,FRAGILE_BASE_CLASS_OFFSET);
     }
 }
