@@ -6,11 +6,17 @@
 /// #[link_section="__TEXT,test_section"]
 /// static IDENT: [u8; 6] = *b"ascii\0";
 /// ```
-pub fn export_ascii(link_section:&str, ident: &str, ascii: &str) -> String {
+pub fn export_ascii(link_section:&str, l_pub: bool, ident: &str, ascii: &str) -> String {
+    let pub_part = if l_pub {
+        "pub"
+    }
+    else {
+        ""
+    };
     format!(
         r#"
         #[link_section="{LINK_SECTION}"]
-        static {IDENT}: [u8; {ASCII_LEN}] = *b"{ASCII}\0";
+        {pub_part} static {IDENT}: [u8; {ASCII_LEN}] = *b"{ASCII}\0";
         "#
     ,LINK_SECTION=link_section,IDENT=ident,ASCII=ascii,ASCII_LEN=ascii.len() + 1)
 }

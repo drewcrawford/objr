@@ -245,6 +245,17 @@ pub fn __static_asciiz(stream: TokenStream) -> TokenStream {
         Ok(ident) => ident,
         Err(e) => { return error(&format!("Expected identifier, got {}",e))}
     };
+
+    let (ident,l_pub) = if ident == "pub" {
+        let new_ident = match parse_ident(&mut iter) {
+            Ok(ident) => ident,
+            Err(e) => { return error(&format!("Expected identifier after 'pub', got {}",e))}
+        };
+        (new_ident,true)
+    }
+    else {
+        (ident,false)
+    };
     match iter.next() {
         Some(TokenTree::Punct(p)) if p == ',' => (),
         o => { return error(&format!("Expected comma, got {:?}",o))}
@@ -258,7 +269,7 @@ pub fn __static_asciiz(stream: TokenStream) -> TokenStream {
         None => (),
         Some(e) => { return error(&format!("Expected end of macro invocation, got {:?}",e))}
     };
-    export_name::export_ascii(&link_section, &ident, &ascii).parse().unwrap()
+    export_name::export_ascii(&link_section, l_pub,&ident, &ascii).parse().unwrap()
 
 }
 
@@ -317,7 +328,7 @@ pub fn __static_asciiz_ident2(stream: TokenStream) -> TokenStream {
     };
 
 
-    export_name::export_ascii(&link_section, &(ident_1 + &ident_2), &ascii).parse().unwrap()
+    export_name::export_ascii(&link_section, false,&(ident_1 + &ident_2), &ascii).parse().unwrap()
 }
 
 /// Declares a static bytestring with 0 appended, by parsing an objc declaration into a selector name. Variant of [__static_asciiz] that concatenates the ident from 2 parts and parses objc declarations.
@@ -378,7 +389,7 @@ pub fn __static_asciiz_ident_as_selector(stream: TokenStream) -> TokenStream {
         return error(&selector.err().unwrap());
     }
 
-    export_name::export_ascii(&link_section,  &(ident_1 + &ident_2), &selector.unwrap()).parse().unwrap()
+    export_name::export_ascii(&link_section,  false,&(ident_1 + &ident_2), &selector.unwrap()).parse().unwrap()
 }
 
 /// Declares a static bytestring with 0 appended, by parsing an objc declaration into a type encoding. Variant of [__static_asciiz] that concatenates the ident from 2 parts and parses objc declarations.
@@ -437,7 +448,7 @@ pub fn __static_asciiz_ident_as_type_encoding(stream: TokenStream) -> TokenStrea
     if type_encoding.is_err() {
         return error(&type_encoding.err().unwrap());
     }
-    export_name::export_ascii(&link_section, &(ident_1 + &ident_2), &type_encoding.unwrap()).parse().unwrap()
+    export_name::export_ascii(&link_section, false,&(ident_1 + &ident_2), &type_encoding.unwrap()).parse().unwrap()
 }
 
 ///Declares a static expression with `link_name` and `link_section` directives.

@@ -87,6 +87,57 @@ macro_rules! __objc_subclass_implpart_a {
                 pub vtable: *const c_void,
                 pub ro: *const ClassRoT
             }
+            //And some external symbols (only relies on $superclass)
+            #[link(name="CoreFoundation",kind="framework")]
+            extern {
+                #[link_name="OBJC_METACLASS_$_NSObject"]
+                pub static NSOBJECT_METACLASS: *const c_void;
+
+                //In addition to that, we likely want symbols for whatever
+                //our superclass is, if distinct
+                //Some foundation types are abstract and therefore tricky to subclass
+                objr::bindings::__static_extern!("OBJC_CLASS_$_",$superclass,
+                    pub static $NSSUPER_CLASS: *const c_void;
+                );
+                objr::bindings::__static_extern!("OBJC_METACLASS_$_",$superclass,
+                    pub static NSSUPER_METACLASS: *const c_void;
+                );
+            }
+            #[link(name="objc",kind="dylib")]
+            extern {
+                #[link_name="_objc_empty_cache"]
+                pub static $OBJC_EMPTY_CACHE: *const c_void;
+            }
+            objr::bindings::__static_asciiz!("__TEXT,__objc_classname,cstring_literals",pub $CLASS_NAME,$objcname);
+
+            //declare metaclass RoT
+            objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_METACLASS_RO_$_",$objcname,
+                static METACLASS_RO: objr::bindings::_SyncWrapper<ClassRoT> =
+                objr::bindings::_SyncWrapper(ClassRoT {
+                    flags: METACLASS_FLAGS,
+                    instance_start: 40,
+                    instance_size: 40,
+                    reserved:0,
+                    ivar_layout: std::ptr::null(),
+                    name: &CLASS_NAME as *const u8,
+                    base_method_list: std::ptr::null(),
+                    base_protocols: std::ptr::null(),
+                    ivars: std::ptr::null(),
+                    weak_ivar_layout:std::ptr::null(),
+                    base_properties: std::ptr::null(),
+                });
+            );
+
+            //metaclass instance can go in prelude
+            objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_METACLASS_$_",$objcname,
+                pub static METACLASS: objr::bindings::_SyncWrapper<CLASST> = objr::bindings::_SyncWrapper(CLASST {
+                    isa: unsafe{ &NSOBJECT_METACLASS},
+                    superclass: unsafe{ &NSSUPER_METACLASS},
+                    cache: unsafe{ &OBJC_EMPTY_CACHE},
+                    vtable: std::ptr::null(),
+                    ro: &METACLASS_RO.0
+                });
+            );
         });
         //these redelcarations need to be migrated out of here
         type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::IvarListT");
@@ -97,64 +148,8 @@ macro_rules! __objc_subclass_implpart_a {
         const CLASS_FLAGS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::CLASS_FLAGS");
         const METACLASS_FLAGS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::METACLASS_FLAGS");
         type CLASST = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::CLASST");
-        objr::bindings::__static_asciiz!("__TEXT,__objc_classname,cstring_literals",$CLASS_NAME,$objcname);
 
 
-
-
-
-        //declare metaclass RoT
-        objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_METACLASS_RO_$_",$objcname,
-            static METACLASS_RO: objr::bindings::_SyncWrapper<ClassRoT> =
-            objr::bindings::_SyncWrapper(ClassRoT {
-                flags: METACLASS_FLAGS,
-                instance_start: 40,
-                instance_size: 40,
-                reserved:0,
-                ivar_layout: std::ptr::null(),
-                name: &CLASS_NAME as *const u8,
-                base_method_list: std::ptr::null(),
-                base_protocols: std::ptr::null(),
-                ivars: std::ptr::null(),
-                weak_ivar_layout:std::ptr::null(),
-                base_properties: std::ptr::null(),
-            });
-        );
-
-
-
-        //And some external symbols (only relies on $superclass)
-        #[link(name="CoreFoundation",kind="framework")]
-        extern {
-            #[link_name="OBJC_METACLASS_$_NSObject"]
-            static NSOBJECT_METACLASS: *const c_void;
-
-            //In addition to that, we likely want symbols for whatever
-            //our superclass is, if distinct
-            //Some foundation types are abstract and therefore tricky to subclass
-            objr::bindings::__static_extern!("OBJC_CLASS_$_",$superclass,
-                static $NSSUPER_CLASS: *const c_void;
-            );
-            objr::bindings::__static_extern!("OBJC_METACLASS_$_",$superclass,
-                static NSSUPER_METACLASS: *const c_void;
-            );
-        }
-        #[link(name="objc",kind="dylib")]
-        extern {
-            #[link_name="_objc_empty_cache"]
-            static $OBJC_EMPTY_CACHE: *const c_void;
-        }
-
-        //metaclass instance can go in prelude
-        objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_METACLASS_$_",$objcname,
-            static METACLASS: objr::bindings::_SyncWrapper<CLASST> = objr::bindings::_SyncWrapper(CLASST {
-                isa: unsafe{ &NSOBJECT_METACLASS},
-                superclass: unsafe{ &NSSUPER_METACLASS},
-                cache: unsafe{ &OBJC_EMPTY_CACHE},
-                vtable: std::ptr::null(),
-                ro: &METACLASS_RO.0
-            });
-        );
 
     }
 }
@@ -173,7 +168,7 @@ macro_rules! __objc_subclass_implpart_class_ro {
                 instance_size: 8 + std::mem::size_of::<$payload>() as u32,
                 reserved:0,
                 ivar_layout: std::ptr::null(),
-                name: &$CLASS_NAME as *const u8,
+                name: &objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::CLASS_NAME") as *const u8,
                 //In the case that we have methods, we want this to be the method list
                 base_method_list: $METHODLISTEXPR,
                 base_protocols: std::ptr::null(),
@@ -316,9 +311,9 @@ macro_rules! __objc_subclass_implpart_finalize {
         //declare class
         objr::bindings::__static_expr!("__DATA,__objc_data", "OBJC_CLASS_$_",$objcname,
             pub static CLASS: objr::bindings::_SyncWrapper<$CLASST> = objr::bindings::_SyncWrapper($CLASST {
-                isa: unsafe{ std::mem::transmute(&METACLASS )} ,
-                superclass: unsafe{ &$NSSUPER_CLASS} ,
-                cache: unsafe{ &$OBJC_EMPTY_CACHE},
+                isa: unsafe{ std::mem::transmute(& objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::METACLASS") )} ,
+                superclass: unsafe{ & objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::NSSUPER_CLASS") },
+                cache: unsafe{ &objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::OBJC_EMPTY_CACHE") },
                 vtable: std::ptr::null(),
                 ro: &$CLASS_RO.0
             });
