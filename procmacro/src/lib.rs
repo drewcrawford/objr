@@ -638,6 +638,34 @@ pub fn __concat_idents(stream: TokenStream) -> TokenStream {
     return format!("{ITEM1}{ITEM2}",ITEM1=item1,ITEM2=item2).parse().unwrap()
 }
 
+#[doc(hidden)]
+#[proc_macro]
+pub fn __concat_3_idents(stream: TokenStream) -> TokenStream {
+    let mut iter = stream.into_iter();
+    let item1 = match parse_literal_string(&mut iter) {
+        Ok(ParsedLiteral::Literal(l)) => {l}
+        o => { return error(&format!("Expected first ident part, {:?}",o))}
+    };
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+
+    let item2 = match parse_ident(&mut iter) {
+        Ok(i) => i,
+        Err(e) => { return error(&format!("Expected second ident part, {}",e))}
+    };
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+    let item3 = match parse_literal_string(&mut iter) {
+        Ok(ParsedLiteral::Literal(l)) => {l}
+        o => { return error(&format!("Expected third ident part, {:?}",o))}
+    };
+    return format!("{ITEM1}{ITEM2}{item3}",ITEM1=item1,ITEM2=item2).parse().unwrap()
+}
+
 ///Concatenates two modules into a module declaraton.
 ///
 /// ```

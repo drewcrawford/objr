@@ -28,23 +28,28 @@ macro_rules! __objc_sublcass_implpart_method_prelude {
 macro_rules! __objc_subclass_implpart_a {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     //these ivars are imported from external scope to achieve macro hygiene
-    $IvarListT:ident,$ClassRoT:ident,$CLASS_NAME:ident,$CLASS_FLAGS:ident,$METACLASS_FLAGS:ident,$CLASST:ident,
+    $ClassRoT:ident,$CLASS_NAME:ident,$CLASS_FLAGS:ident,$METACLASS_FLAGS:ident,$CLASST:ident,
     $NSSUPER_CLASS:ident,$OBJC_EMPTY_CACHE:ident) => {
         use core::ffi::c_void;
-        #[repr(C)]
-        struct $IvarListT {
-            //some dispute about whether this is the size of ivar_list_t,
-            //a magic number, or both.  In practice it's 32
-            magic: u32,
-            count: u32,
-            //todo: support multiple ivars.  For now, just inline the contents of an ivar, which are
-            //points to FRAGILE_BASE_CLASS_OFFSET
-            offset: *const u32,
-            name: *const u8,
-            r#type: *const u8,
-            alignment: u32,
-            size: u32
-        }
+        objr::bindings::__mod!(subclass_impl_,$identifier, {
+            #[repr(C)]
+            pub struct IvarListT {
+                //some dispute about whether this is the size of ivar_list_t,
+                //a magic number, or both.  In practice it's 32
+                pub magic: u32,
+                pub count: u32,
+                //todo: support multiple ivars.  For now, just inline the contents of an ivar, which are
+                //points to FRAGILE_BASE_CLASS_OFFSET
+                pub offset: *const u32,
+                pub name: *const u8,
+                pub r#type: *const u8,
+                pub alignment: u32,
+                pub size: u32
+            }
+        });
+
+        type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::IvarListT");
+
         //see https://opensource.apple.com/source/objc4/objc4-680/runtime/objc-runtime-new.h.auto.html
         #[repr(C)]
         struct $ClassRoT {
@@ -333,10 +338,9 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
     (
     $pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,$payload:ty
     ) => {
-
         objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
         //declare these identifiers into our local scope
-        IvarListT,ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //payload variant requires an ivar list
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
 
@@ -354,7 +358,7 @@ macro_rules! __objc_subclass_impl_no_payload_no_methods {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident) => {
                 objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
         //declare these identifiers into our local scope
-        IvarListT,ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
                 objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,ClassRoT,CLASS_FLAGS,
                 (), //for the no-payload case, use an empty type
@@ -377,7 +381,7 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
 
                 objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
                 //declare these identifiers into our local scope
-                IvarListT,ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
                 objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),*], METHOD_LIST);
 
@@ -402,7 +406,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
     {
         objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
                 //declare these identifiers into our local scope
-                IvarListT,ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                ClassRoT,CLASS_NAME,CLASS_FLAGS,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //variant with payload
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
         //variant with methods
@@ -731,6 +735,26 @@ mod test {
         let pool = unsafe{ AutoreleasePool::new() };
         let ex = example_payload_methods::ExamplePayloadMethods::class().alloc_init(&pool);
         assert!(*ex.payload() == 5);
+    }
+
+    #[test] fn multiple_subclasses() {
+        use objr::bindings::*;
+        // objc_subclass! {
+        //     struct A {
+        //         @class(A)
+        //         @superclass(NSObject)
+        //         payload: (),
+        //         methods: []
+        //     }
+        // }
+        // objc_subclass! {
+        //     struct B {
+        //         @class(B)
+        //         @superclass(NSObject)
+        //         payload: (),
+        //         methods: []
+        //     }
+        // }
     }
 
 }
