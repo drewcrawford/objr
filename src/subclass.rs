@@ -314,12 +314,11 @@ macro_rules! __objc_subclass_implpart_finalize {
         });
 
 
-        use objr::bindings::{objc_instance};
 
         //declare our wrapper type
         //The declared type will be FFI-safe to an objc pointer, see documentation
         //for objc_instance!.
-        objc_instance! {
+        objr::bindings::objc_instance! {
             pub struct $identifier;
         }
         //We avoid using `objc_class!` macro here since it imports an external ObjC class.
@@ -428,6 +427,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 //subclass "real" implementation here
 ///Declares an objc subclass.
 /// ```rust
+/// # fn main() {} //error[E0433]: failed to resolve: could not find `subclass_impl_Example` in the crate root
 /// use objr::objc_subclass;
 /// objc_subclass! {
 ///     //Declare a Rust type named `Example`, which maps to the underlying objc class
@@ -461,6 +461,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 ///
 /// Here's a simple example
 /// ```
+/// # fn main() {} //error[E0433]: failed to resolve: could not find `subclass_impl_Example` in the crate root
 /// use objr::bindings::*;
 /// extern "C" fn example(objcSelf: Example, //repr-transparent to the pointer type
 ///                     sel: Sel) {
@@ -534,6 +535,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
 ///
 ///
 /// ```
+/// # fn main() {} //error[E0433]: failed to resolve: could not find `subclass_impl_Example` in the crate root
 /// use objr::bindings::*;
 /// objc_subclass! {
 ///     //Declare a Rust type named `Example`, which maps to the underlying objc class
@@ -739,24 +741,24 @@ mod test {
         assert!(*ex.payload() == 5);
     }
 
-    #[test] fn multiple_subclasses() {
+    mod multiple {
         use objr::bindings::*;
-        // objc_subclass! {
-        //     struct A {
-        //         @class(A)
-        //         @superclass(NSObject)
-        //         payload: (),
-        //         methods: []
-        //     }
-        // }
-        // objc_subclass! {
-        //     struct B {
-        //         @class(B)
-        //         @superclass(NSObject)
-        //         payload: (),
-        //         methods: []
-        //     }
-        // }
+        objc_subclass! {
+            struct A {
+                @class(A)
+                @superclass(NSObject)
+                payload: (),
+                methods: []
+            }
+        }
+        objc_subclass! {
+            struct B {
+                @class(B)
+                @superclass(NSObject)
+                payload: (),
+                methods: []
+            }
+        }
     }
 
 }
