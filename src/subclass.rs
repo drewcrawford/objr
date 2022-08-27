@@ -12,7 +12,7 @@ macro_rules! __objc_sublcass_implpart_method_prelude {
 
         //need a variably-sized type?  Const generics to the rescue!
         #[repr(C)]
-        struct $MethodListT<const SIZE: usize> {
+        pub struct $MethodListT<const SIZE: usize> {
             //I think we place 24 in here, although high bits may be used at runtime?
             magic: u32,
             //method count
@@ -180,44 +180,46 @@ macro_rules! __objc_subclass_implpart_class_ro {
 macro_rules! __objc_subclass_implpart_method_list {
     (
         $objcname:ident,
-        [$($objcmethod: literal, $methodfn: expr),+],
-        $METHOD_LIST:ident
+        [$($objcmethod: literal, $methodfn: expr),+]
     ) => {
         //method prelude
-                //declare idents inside the prelude
-                objr::__objc_sublcass_implpart_method_prelude!(MethodT,MethodListT);
 
-                $(
-                    objr::bindings::__static_asciiz_ident_as_selector!("__TEXT,__objc_methname,cstring_literals","METHNAME_",$methodfn,$objcmethod);
-                    /*todo: The real objc compiler deduplicates these values across different functions.
-                    I'm unclear on exactly what the value of deduplicating this is.  From studying compiled binaries
-                    it appears that the *linker* also deduplicates local (`L`) symbols of this type, so I'm
-                    uncertain if deduplicating this at the compile phase has any effect really.
+                objr::bindings::__mod!(implpart_method_list_,$objcname, {
+                    //declare idents inside the prelude
+                    objr::__objc_sublcass_implpart_method_prelude!(MethodT,MethodListT);
+                    $(
+                        objr::bindings::__static_asciiz_ident_as_selector!("__TEXT,__objc_methname,cstring_literals","METHNAME_",$methodfn,$objcmethod);
+                        /*todo: The real objc compiler deduplicates these values across different functions.
+                        I'm unclear on exactly what the value of deduplicating this is.  From studying compiled binaries
+                        it appears that the *linker* also deduplicates local (`L`) symbols of this type, so I'm
+                        uncertain if deduplicating this at the compile phase has any effect really.
 
-                    Leaving this for now.
-                    */
-                    objr::bindings::__static_asciiz_ident_as_type_encoding!("__TEXT,__objc_methtype,cstring_literals","METHTYPE_",$methodfn,$objcmethod);
-                )+
+                        Leaving this for now.
+                        */
+                        objr::bindings::__static_asciiz_ident_as_type_encoding!("__TEXT,__objc_methtype,cstring_literals","METHTYPE_",$methodfn,$objcmethod);
+                    )+
 
-                const COUNT: usize = objr::bindings::__count!($($methodfn),*);
-                objr::bindings::__static_expr!("__DATA,__objc_const","_OBJC_$_INSTANCE_METHODS_",$objcname,
-                    static $METHOD_LIST: objr::bindings::_SyncWrapper<MethodListT<COUNT>> = objr::bindings::_SyncWrapper(
-                        MethodListT {
-                            magic: 24,
-                            count: COUNT as u32,
-                            methods: [
-                                $(
-                                    MethodT {
-                                        name: & objr::bindings::__concat_idents!("METHNAME_",$methodfn) as *const u8,
-                                        types: & objr::bindings::__concat_idents!("METHTYPE_",$methodfn) as *const u8,
-                                        imp: $methodfn as *const core::ffi::c_void
-                                    }
-                                ),*
-                            ]
+                    const COUNT: usize = objr::bindings::__count!($($methodfn),*);
+                    objr::bindings::__static_expr!("__DATA,__objc_const","_OBJC_$_INSTANCE_METHODS_",$objcname,
+                        pub static METHOD_LIST: objr::bindings::_SyncWrapper<MethodListT<COUNT>> = objr::bindings::_SyncWrapper(
+                            MethodListT {
+                                magic: 24,
+                                count: COUNT as u32,
+                                methods: [
+                                    $(
+                                        MethodT {
+                                            name: & objr::bindings::__concat_idents!("METHNAME_",$methodfn) as *const u8,
+                                            types: & objr::bindings::__concat_idents!("METHTYPE_",$methodfn) as *const u8,
+                                            imp: objr::bindings::__concat_idents!("super::",$methodfn) as *const core::ffi::c_void
+                                        }
+                                    ),*
+                                ]
 
-                        }
+                            }
+                        );
                     );
-                );
+                });
+
     }
 }
 ///Declares an ivarlist (e.g., payload variants)
@@ -392,7 +394,7 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
                 //declare these identifiers into our local scope
                 CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
-                objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),*], METHOD_LIST);
+                objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),*]);
 
                 objr::__objc_subclass_implpart_class_ro!($objcname,
                 (), //for the no-payload case, use an empty type
@@ -400,7 +402,7 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
                 //use the null pointer for our ivar expression since we have no payload
                     std::ptr::null(),
                 //transmute our method_list into c_void
-                    unsafe{ std::mem::transmute(&super::METHOD_LIST.0) }
+                    unsafe{ std::mem::transmute(&(objr::bindings::__concat_3_idents!("super::implpart_method_list_",$objcname,"::METHOD_LIST")).0) }
                 );
                 objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
     }
@@ -419,12 +421,12 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
         //variant with payload
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload);
         //variant with methods
-        objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),* ], METHOD_LIST);
+        objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),* ]);
         objr::__objc_subclass_implpart_class_ro!($objcname,
         $payload,
         CLASS_NAME,
         unsafe {std::mem::transmute(&(objr::bindings::__concat_3_idents!("super::ivar_list_",$identifier,"::IVAR_LIST")).0)},
-        unsafe{ std::mem::transmute(&super::METHOD_LIST.0) }
+        unsafe{ std::mem::transmute(&objr::bindings::__concat_3_idents!("super::implpart_method_list_",$objcname,"::METHOD_LIST").0) }
         );
         objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         objr::__objc_subclass_impl_payload_access!($pub, $identifier,$payload);
@@ -811,6 +813,33 @@ mod test {
                 methods: []
             }
         }
+    }
+
+    mod multiple_methods {
+        use objr::bindings::*;
+        extern "C" fn sample(_objc_self: &mut Methods1, _sel: Sel) {
+            println!("init from rust");
+        }
+        objc_subclass! {
+            struct Methods1 {
+                @class(Methods1)
+                @superclass(NSObject)
+                payload: (),
+                methods: [
+                    "-(id) init" => unsafe sample
+                ]
+            }
+        }
+        // objc_subclass! {
+        //     struct Methods2 {
+        //         @class(Methods2)
+        //         @superclass(NSObject)
+        //         payload: (),
+        //         methods: [
+        //             "-(id) init" => unsafe sample
+        //         ]
+        //     }
+        // }
     }
 
 }
