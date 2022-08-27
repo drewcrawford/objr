@@ -28,7 +28,7 @@ macro_rules! __objc_sublcass_implpart_method_prelude {
 macro_rules! __objc_subclass_implpart_a {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     //these ivars are imported from external scope to achieve macro hygiene
-    $CLASS_NAME:ident,$METACLASS_FLAGS:ident,$CLASST:ident,
+    $CLASS_NAME:ident,$CLASST:ident,
     $NSSUPER_CLASS:ident,$OBJC_EMPTY_CACHE:ident) => {
         use core::ffi::c_void;
         objr::bindings::__mod!(subclass_impl_,$identifier, {
@@ -71,6 +71,7 @@ macro_rules! __objc_subclass_implpart_a {
 
             pub const CLASS_FLAGS: u32 =RO_FLAGS_HIDDEN | RO_FLAGS_ARR;
 
+            pub const METACLASS_FLAGS: u32 =RO_FLAGS_METACLASS | RO_FLAGS_HIDDEN | RO_FLAGS_ARR;
         });
         //these redelcarations need to be migrated out of here
         type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::IvarListT");
@@ -79,13 +80,13 @@ macro_rules! __objc_subclass_implpart_a {
         const RO_FLAGS_HIDDEN: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_HIDDEN");
         const RO_FLAGS_ARR: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_ARR");
         const CLASS_FLAGS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::CLASS_FLAGS");
+        const METACLASS_FLAGS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::METACLASS_FLAGS");
 
         objr::bindings::__static_asciiz!("__TEXT,__objc_classname,cstring_literals",$CLASS_NAME,$objcname);
 
 
 
 
-        const METACLASS_FLAGS: u32 =RO_FLAGS_METACLASS | RO_FLAGS_HIDDEN | RO_FLAGS_ARR;
 
         //declare metaclass RoT
         objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_METACLASS_RO_$_",$objcname,
@@ -349,7 +350,7 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
     ) => {
         objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
         //declare these identifiers into our local scope
-        CLASS_NAME,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //payload variant requires an ivar list
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
 
@@ -367,7 +368,7 @@ macro_rules! __objc_subclass_impl_no_payload_no_methods {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident) => {
                 objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
         //declare these identifiers into our local scope
-        CLASS_NAME,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
                 objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,ClassRoT,CLASS_FLAGS,
                 (), //for the no-payload case, use an empty type
@@ -390,7 +391,7 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
 
                 objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
                 //declare these identifiers into our local scope
-                CLASS_NAME,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
                 objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),*], METHOD_LIST);
 
@@ -415,7 +416,7 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
     {
         objr::__objc_subclass_implpart_a!($pub,$identifier,$objcname,$superclass,
                 //declare these identifiers into our local scope
-                CLASS_NAME,METACLASS_FLAGS,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                CLASS_NAME,CLASST,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //variant with payload
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
         //variant with methods
