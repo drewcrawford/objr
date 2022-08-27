@@ -102,6 +102,50 @@ pub fn parse_ident<I: Iterator<Item=TokenTree>>(iterator: &mut I) -> Result<Stri
     }
 }
 
+pub fn parse_type<I: Iterator<Item=TokenTree>>(iterator: &mut I) -> Result<String,String> {
+    let next = match iterator.next() {
+        Some(u) => u,
+        None => { return Err("Nothing found.".to_string()) }
+    };
+    let unboxed_next = unbox_group(next);
+    match unboxed_next {
+        TokenTree::Ident(s)  => { Ok(s.to_string()) }
+        TokenTree::Group(g) => {
+            let mut iter = g.stream().into_iter();
+            let mut parsed = String::new();
+            loop {
+                let next = match iter.next() {
+                    Some(u) => u,
+                    None => { break; }
+                };
+                match next {
+                    TokenTree::Ident(s) => {
+                        parsed.push_str(&s.to_string());
+                    }
+                    TokenTree::Punct(p) => {
+                        parsed.push_str(&p.to_string());
+                    }
+                    TokenTree::Literal(l) => {
+                        parsed.push_str(&l.to_string());
+                    }
+                    TokenTree::Group(g) => {
+                        parsed.push_str(&g.to_string());
+                    }
+                }
+            }
+            if parsed == "" || parsed == "()".to_string() {
+                Ok("()".to_string())
+            }
+            else {
+                Err(format!("while parsing a type, group, {:?}", parsed))
+            }
+        }
+        other => {
+            Err(format!("unexpected {:?}", other))
+        }
+    }
+}
+
 ///Tries to parse as an ident or a string
 pub fn parse_ident_or_literal<I: Iterator<Item=TokenTree> + Clone>(iterator: &mut I) -> Result<String,String> {
     let iterator_backup = iterator.clone();

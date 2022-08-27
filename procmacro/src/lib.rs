@@ -11,7 +11,7 @@ mod export_name;
 mod declarations;
 
 use proc_macro::{TokenStream, TokenTree};
-use misc::{error, parse_literal_string,parse_ident};
+use misc::{error, parse_literal_string,parse_ident,parse_type};
 use crate::misc::ParsedLiteral;
 
 ///```
@@ -152,7 +152,11 @@ pub fn derive_objc_instance(stream: TokenStream) -> TokenStream {
 /// impl InScopeAutoTrait for objr::bindings::Class<RustIdentifier> {
 ///      fn new() -> &'static objr::bindings::Class<RustIdentifier> { todo!() }
 /// }
-/// __objc_implement_class!{RustIdentifier}
+/// //import NSObject symbol
+/// #[link(name = "Foundation", kind = "framework")]
+/// extern "C" {
+/// }
+/// __objc_implement_class!{RustIdentifier,NSObject}
 /// ```
 #[doc(hidden)]
 #[proc_macro]
@@ -801,4 +805,48 @@ pub fn __parse_declaration_to_sel(stream: TokenStream) -> TokenStream {
     }
     let fmt = format!(r#""{}""#,selector.unwrap());
     fmt.parse().unwrap()
+}
+
+/**
+Declares a mangled type name for a type.
+
+```
+use procmacro::__type_declr;
+__type_declr!(Prefix, Identifier, u8); //expands to `type PrefixIdentifier = u8;`
+
+let a: PrefixIdentifier = 0;
+
+__type_declr!(Prefix,Unit,()); //expands to `type PrefixUnit = ();`
+```
+
+*/
+#[doc(hidden)]
+#[proc_macro]
+pub fn __type_declr(stream: TokenStream) -> TokenStream {
+    let mut iter = stream.into_iter();
+    let prefix = match parse_ident(&mut iter) {
+        Ok(l) => {l}
+        o => { return error(&format!("Expected first ident part, {:?}",o))}
+    };
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+    let ident = match parse_ident(&mut iter) {
+        Ok(i) => i,
+        Err(e) => { return error(&format!("Expected second ident part, {}",e))}
+    };
+    match iter.next() {
+        Some(TokenTree::Punct(p)) if p == ',' => (),
+        o => { return error(&format!("Expected comma, got {:?}",o))}
+    };
+    let ty = match parse_type(&mut iter) {
+        Ok(i) => i,
+        Err(e) => { return error(&format!("Expected type part, {}",e))}
+    };
+    match iter.next() {
+        None => {}
+        other => { return error(&format!("Expected end of macro invocation, got {:?}",other));}
+    }
+    format!("type {PREFIX}{IDENT} = {TYPE};", PREFIX=prefix, IDENT=ident, TYPE=ty).parse().unwrap()
 }

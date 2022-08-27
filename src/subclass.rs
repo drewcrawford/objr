@@ -146,7 +146,9 @@ macro_rules! __objc_subclass_implpart_a {
 macro_rules! __objc_subclass_implpart_class_ro {
     ($objcname:ident,
         $payload:ty,$CLASS_NAME:expr,$IVARLISTEXPR:expr,$METHODLISTEXPR:expr) => {
+        objr::bindings::__type_declr!(payload_for_implpart_class_ro_, $objcname, $payload);
         objr::bindings::__mod!(class_ro_,$objcname, {
+            type Payload = objr::bindings::__concat_idents!("super::payload_for_implpart_class_ro_",$objcname);
             type ClassRoT = objr::bindings::__concat_3_idents!("super::subclass_impl_",$objcname,"::ClassRoT");
             objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_CLASS_RO_$_",$objcname,
                 pub static CLASS_RO: objr::bindings::_SyncWrapper<ClassRoT> = objr::bindings::_SyncWrapper(ClassRoT {
@@ -154,7 +156,7 @@ macro_rules! __objc_subclass_implpart_class_ro {
                     //not sure where these come from
                     instance_start: 8,
                     //8 plus whatever the size of our payload is
-                    instance_size: 8 + std::mem::size_of::<$payload>() as u32,
+                    instance_size: 8 + std::mem::size_of::<Payload>() as u32,
                     reserved:0,
                     ivar_layout: std::ptr::null(),
                     name: &objr::bindings::__concat_3_idents!("super::subclass_impl_",$objcname,"::CLASS_NAME") as *const u8,
@@ -222,8 +224,12 @@ macro_rules! __objc_subclass_implpart_method_list {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __objc_subclass_implpart_ivar_list {
-    ($objcname: ident, $payloadtype:ty, $FRAGILE_BASE_CLASS_OFFSET: ident, $IVAR_LIST:ident) => {
-        objr::bindings::__static_asciiz!("__TEXT,__objc_methname,cstring_literals",IVAR_NAME,"payload");
+    ($objcname: ident, $payloadtype:ty) => {
+        objr::bindings::__type_declr!(payload_,$objcname,$payloadtype);
+
+        objr::bindings::__mod!(ivar_list_, $objcname, {
+            type Payload = objr::bindings::__concat_idents!("super::payload_",$objcname);
+            objr::bindings::__static_asciiz!("__TEXT,__objc_methname,cstring_literals",IVAR_NAME,"payload");
             //don't explain to objc what type this is
             objr::bindings::__static_asciiz!("__TEXT,__objc_methtype,cstring_literals",IVAR_TYPE,"?");
 
@@ -233,22 +239,24 @@ macro_rules! __objc_subclass_implpart_ivar_list {
             //By default, we put this to 8 since we think our type starts at position 8
             //into the object?
             objr::bindings::__static_expr3!("__DATA,__objc_ivar", "OBJC_IVAR_$_",$objcname,".payload",
-            static $FRAGILE_BASE_CLASS_OFFSET: u32 = 8;
+            pub static FRAGILE_BASE_CLASS_OFFSET: u32 = 8;
             );
-            type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::IvarListT");
+            type IvarListT = objr::bindings::__concat_3_idents!("super::subclass_impl_",$objcname,"::IvarListT");
             objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_INSTANCE_VARIABLES_",$objcname,
-                static $IVAR_LIST: objr::bindings::_SyncWrapper<IvarListT> = objr::bindings::_SyncWrapper(
+                pub static IVAR_LIST: objr::bindings::_SyncWrapper<IvarListT> = objr::bindings::_SyncWrapper(
                     IvarListT {
                         magic: 32,
                         count: 1,
                         offset: &FRAGILE_BASE_CLASS_OFFSET,
                         name: &IVAR_NAME as *const u8,
                     r#type: &IVAR_TYPE as *const u8,
-                    alignment: std::mem::align_of::<$payloadtype>() as u32,
-                    size: std::mem::size_of::<$payloadtype>() as u32,
+                    alignment: std::mem::align_of::<Payload>() as u32,
+                    size: std::mem::size_of::<Payload>() as u32,
                     }
                 );
             );
+        });
+
     }
 }
 ///This macro implements some methods on the wrapper type
@@ -256,7 +264,7 @@ macro_rules! __objc_subclass_implpart_ivar_list {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __objc_subclass_impl_payload_access {
-    ($pub:vis, $identifier:ident,$payload:ty, $FRAGILE_BASE_CLASS_OFFSET:ident) => {
+    ($pub:vis, $identifier:ident,$payload:ty) => {
         impl $identifier {
             /// Gets a mutable reference to the underlying payload.
             ///
@@ -280,7 +288,7 @@ macro_rules! __objc_subclass_impl_payload_access {
 
                 //Note that we need to read_volatile here to get the real runtime payload,
                 //not the payload known at compile time
-                let payload_addr = self_addr.offset(std::ptr::read_volatile(&$FRAGILE_BASE_CLASS_OFFSET) as isize);
+                let payload_addr = self_addr.offset(std::ptr::read_volatile(&objr::bindings::__concat_3_idents!("ivar_list_",$identifier,"::FRAGILE_BASE_CLASS_OFFSET")) as isize);
 
                 let payload_typed_addr =std::mem::transmute(payload_addr);
                 payload_typed_addr
@@ -343,13 +351,13 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
         //declare these identifiers into our local scope
         CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //payload variant requires an ivar list
-        objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
+        objr::__objc_subclass_implpart_ivar_list!($objcname,$payload);
 
-        objr::__objc_subclass_implpart_class_ro!($objcname,$payload,CLASS_NAME,&super::IVAR_LIST.0,
+        objr::__objc_subclass_implpart_class_ro!($objcname,$payload,CLASS_NAME,&(objr::bindings::__concat_3_idents!("super::ivar_list_",$identifier,"::IVAR_LIST")).0,
             std::ptr::null() //Since we have no methods, we pass null for METHODLISTEXPR
         );
         objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
-        objr::__objc_subclass_impl_payload_access!($pub,$identifier,$payload,FRAGILE_BASE_CLASS_OFFSET);
+        objr::__objc_subclass_impl_payload_access!($pub,$identifier,$payload);
 
     }
 }
@@ -409,17 +417,17 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
                 //declare these identifiers into our local scope
                 CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         //variant with payload
-        objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
+        objr::__objc_subclass_implpart_ivar_list!($objcname,$payload);
         //variant with methods
         objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),* ], METHOD_LIST);
         objr::__objc_subclass_implpart_class_ro!($objcname,
         $payload,
         CLASS_NAME,
-        unsafe {std::mem::transmute(&super::IVAR_LIST.0)},
+        unsafe {std::mem::transmute(&(objr::bindings::__concat_3_idents!("super::ivar_list_",$identifier,"::IVAR_LIST")).0)},
         unsafe{ std::mem::transmute(&super::METHOD_LIST.0) }
         );
         objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
-        objr::__objc_subclass_impl_payload_access!($pub, $identifier,$payload,FRAGILE_BASE_CLASS_OFFSET);
+        objr::__objc_subclass_impl_payload_access!($pub, $identifier,$payload);
     }
 }
 
@@ -756,6 +764,50 @@ mod test {
                 @class(B)
                 @superclass(NSObject)
                 payload: (),
+                methods: []
+            }
+        }
+    }
+
+    mod multiple_superclass {
+        use objr::bindings::*;
+        objc_subclass! {
+            struct NSSTRINGEX1 {
+                @class(NSSTRINGEX1)
+                @superclass(NSString)
+                payload: (),
+                methods: []
+            }
+        }
+        objc_subclass! {
+            struct NSSTRINGEX2 {
+                @class(NSSTRINGEX2)
+                @superclass(NSString)
+                payload: (),
+                methods: []
+            }
+        }
+    }
+
+    mod multiple_payload {
+        use objr::bindings::*;
+        struct MyPayload {
+            _a: u8,
+            _b: u8,
+        }
+        objc_subclass! {
+            struct Payloads1 {
+                @class(Payloads1)
+                @superclass(NSObject)
+                payload: unsafe uninitialized nondrop MyPayload,
+                methods: []
+            }
+        }
+        objc_subclass! {
+            struct Payloads2 {
+                @class(Payloads2)
+                @superclass(NSObject)
+                payload:  unsafe uninitialized nondrop MyPayload,
                 methods: []
             }
         }
