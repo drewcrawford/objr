@@ -64,17 +64,21 @@ macro_rules! __objc_subclass_implpart_a {
                 pub weak_ivar_layout: *const c_void,
                 pub base_properties: *const c_void,
             }
+            //declare RO_FLAGS options
+            pub const RO_FLAGS_METACLASS: u32 = 1;
+            pub const RO_FLAGS_HIDDEN:u32 = 1<<4;
+            pub const RO_FLAGS_ARR:u32 = 1<<7;
         });
-
+        //these redelcarations need to be migrated out of here
         type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::IvarListT");
         type ClassRoT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::ClassRoT");
+        const RO_FLAGS_METACLASS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_METACLASS");
+        const RO_FLAGS_HIDDEN: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_HIDDEN");
+        const RO_FLAGS_ARR: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_ARR");
 
         objr::bindings::__static_asciiz!("__TEXT,__objc_classname,cstring_literals",$CLASS_NAME,$objcname);
 
-        //declare RO_FLAGS options
-        const RO_FLAGS_METACLASS: u32 = 1;
-        const RO_FLAGS_HIDDEN:u32 = 1<<4;
-        const RO_FLAGS_ARR:u32 = 1<<7;
+
 
 
         const $CLASS_FLAGS: u32 =RO_FLAGS_HIDDEN | RO_FLAGS_ARR;
