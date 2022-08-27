@@ -146,27 +146,30 @@ macro_rules! __objc_subclass_implpart_a {
 #[doc(hidden)]
 macro_rules! __objc_subclass_implpart_class_ro {
     ($objcname:ident,
-        $CLASS_RO:ident,$payload:ty,$CLASS_NAME:expr,$IVARLISTEXPR:expr,$METHODLISTEXPR:expr) => {
-        type ClassRoT = objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::ClassRoT");
-        objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_CLASS_RO_$_",$objcname,
-            static $CLASS_RO: objr::bindings::_SyncWrapper<ClassRoT> = objr::bindings::_SyncWrapper(ClassRoT {
-                flags: objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::CLASS_FLAGS"),
-                //not sure where these come from
-                instance_start: 8,
-                //8 plus whatever the size of our payload is
-                instance_size: 8 + std::mem::size_of::<$payload>() as u32,
-                reserved:0,
-                ivar_layout: std::ptr::null(),
-                name: &objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::CLASS_NAME") as *const u8,
-                //In the case that we have methods, we want this to be the method list
-                base_method_list: $METHODLISTEXPR,
-                base_protocols: std::ptr::null(),
-                //in the case that we have ivars, we need a ptr to ivar layout here
-                ivars: $IVARLISTEXPR,
-                weak_ivar_layout: std::ptr::null(),
-                base_properties: std::ptr::null(),
-            });
-        );
+        $payload:ty,$CLASS_NAME:expr,$IVARLISTEXPR:expr,$METHODLISTEXPR:expr) => {
+        objr::bindings::__mod!(class_ro_,$objcname, {
+            type ClassRoT = objr::bindings::__concat_3_idents!("super::subclass_impl_",$objcname,"::ClassRoT");
+            objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_CLASS_RO_$_",$objcname,
+                pub static CLASS_RO: objr::bindings::_SyncWrapper<ClassRoT> = objr::bindings::_SyncWrapper(ClassRoT {
+                    flags: objr::bindings::__concat_3_idents!("super::subclass_impl_",$objcname,"::CLASS_FLAGS"),
+                    //not sure where these come from
+                    instance_start: 8,
+                    //8 plus whatever the size of our payload is
+                    instance_size: 8 + std::mem::size_of::<$payload>() as u32,
+                    reserved:0,
+                    ivar_layout: std::ptr::null(),
+                    name: &objr::bindings::__concat_3_idents!("super::subclass_impl_",$objcname,"::CLASS_NAME") as *const u8,
+                    //In the case that we have methods, we want this to be the method list
+                    base_method_list: $METHODLISTEXPR,
+                    base_protocols: std::ptr::null(),
+                    //in the case that we have ivars, we need a ptr to ivar layout here
+                    ivars: $IVARLISTEXPR,
+                    weak_ivar_layout: std::ptr::null(),
+                    base_properties: std::ptr::null(),
+                });
+            );
+        });
+
     }
 }
 
@@ -295,7 +298,7 @@ macro_rules! __objc_subclass_impl_payload_access {
 macro_rules! __objc_subclass_implpart_finalize {
     ($pub:vis,$identifier:ident,$objcname:ident,$superclass:ident,
     //these are imported into our scope
-        $CLASS_RO:ident,$NSSUPER_CLASS:expr,$OBJC_EMPTY_CACHE:expr
+        $NSSUPER_CLASS:expr,$OBJC_EMPTY_CACHE:expr
     ) => {
         type CLASST = objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::CLASST");
         //declare class
@@ -305,7 +308,7 @@ macro_rules! __objc_subclass_implpart_finalize {
                 superclass: unsafe{ & objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::NSSUPER_CLASS") },
                 cache: unsafe{ &objr::bindings::__concat_3_idents!("subclass_impl_", $identifier, "::OBJC_EMPTY_CACHE") },
                 vtable: std::ptr::null(),
-                ro: &$CLASS_RO.0
+                ro: &objr::bindings::__concat_3_idents!("class_ro_",$objcname,"::CLASS_RO").0
             });
         );
 
@@ -341,10 +344,10 @@ macro_rules! __objc_subclass_impl_with_payload_no_methods {
         //payload variant requires an ivar list
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
 
-        objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,$payload,CLASS_NAME,&IVAR_LIST.0,
+        objr::__objc_subclass_implpart_class_ro!($objcname,$payload,CLASS_NAME,&super::IVAR_LIST.0,
             std::ptr::null() //Since we have no methods, we pass null for METHODLISTEXPR
         );
-        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         objr::__objc_subclass_impl_payload_access!($pub,$identifier,$payload,FRAGILE_BASE_CLASS_OFFSET);
 
     }
@@ -357,7 +360,7 @@ macro_rules! __objc_subclass_impl_no_payload_no_methods {
         //declare these identifiers into our local scope
         CLASS_NAME,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
 
-                objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,
+                objr::__objc_subclass_implpart_class_ro!($objcname,
                 (), //for the no-payload case, use an empty type
                 CLASS_NAME,
                 //IVAREXPRESSION: use the null pointer since we have no payload
@@ -365,7 +368,7 @@ macro_rules! __objc_subclass_impl_no_payload_no_methods {
                 //METHLISTEXPRESSION: Use the null pointer since we have no methods
                     std::ptr::null()
                 );
-                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
     }
 }
 
@@ -382,15 +385,15 @@ macro_rules! __objc_subclass_impl_no_payload_with_methods {
 
                 objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),*], METHOD_LIST);
 
-                objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,
+                objr::__objc_subclass_implpart_class_ro!($objcname,
                 (), //for the no-payload case, use an empty type
                 CLASS_NAME,
                 //use the null pointer for our ivar expression since we have no payload
                     std::ptr::null(),
                 //transmute our method_list into c_void
-                    unsafe{ std::mem::transmute(&METHOD_LIST.0) }
+                    unsafe{ std::mem::transmute(&super::METHOD_LIST.0) }
                 );
-                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+                objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
     }
 }
 
@@ -408,13 +411,13 @@ macro_rules! __objc_subclass_impl_with_payload_with_methods {
         objr::__objc_subclass_implpart_ivar_list!($objcname,$payload,FRAGILE_BASE_CLASS_OFFSET, IVAR_LIST);
         //variant with methods
         objr::__objc_subclass_implpart_method_list!( $objcname, [$($objcmethod, $methodfn),* ], METHOD_LIST);
-        objr::__objc_subclass_implpart_class_ro!($objcname, CLASS_RO,
+        objr::__objc_subclass_implpart_class_ro!($objcname,
         $payload,
         CLASS_NAME,
-        unsafe {std::mem::transmute(&IVAR_LIST.0)},
-        unsafe{ std::mem::transmute(&METHOD_LIST.0) }
+        unsafe {std::mem::transmute(&super::IVAR_LIST.0)},
+        unsafe{ std::mem::transmute(&super::METHOD_LIST.0) }
         );
-        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,CLASS_RO,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
+        objr::__objc_subclass_implpart_finalize!($pub,$identifier,$objcname,$superclass,NSSUPER_CLASS,OBJC_EMPTY_CACHE);
         objr::__objc_subclass_impl_payload_access!($pub, $identifier,$payload,FRAGILE_BASE_CLASS_OFFSET);
     }
 }
