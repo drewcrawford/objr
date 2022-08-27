@@ -140,7 +140,6 @@ macro_rules! __objc_subclass_implpart_a {
             );
         });
         //these redelcarations need to be migrated out of here
-        type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::IvarListT");
         type ClassRoT = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::ClassRoT");
         const RO_FLAGS_METACLASS: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_METACLASS");
         const RO_FLAGS_HIDDEN: u32 = objr::bindings::__concat_3_idents!("subclass_impl_",$identifier,"::RO_FLAGS_HIDDEN");
@@ -244,7 +243,7 @@ macro_rules! __objc_subclass_implpart_ivar_list {
             objr::bindings::__static_expr3!("__DATA,__objc_ivar", "OBJC_IVAR_$_",$objcname,".payload",
             static $FRAGILE_BASE_CLASS_OFFSET: u32 = 8;
             );
-
+            type IvarListT = objr::bindings::__concat_3_idents!("subclass_impl_",$objcname,"::IvarListT");
             objr::bindings::__static_expr!("__DATA,__objc_const", "_OBJC_INSTANCE_VARIABLES_",$objcname,
                 static $IVAR_LIST: objr::bindings::_SyncWrapper<IvarListT> = objr::bindings::_SyncWrapper(
                     IvarListT {
