@@ -457,6 +457,17 @@ impl<'a, T: ObjcInstance> StrongLifetimeCell<'a, T> {
             self.cast_into()
         }
     }
+    ///Attempts to use the "trampoline" trick to return an autoreleased value to objc.
+    ///
+    /// This is largely used when implementing a subclass.
+    ///
+    /// You must return the return value of this function, to your caller to get optimized results.
+    /// Results are not guaranteed to be optimized, in part because inline assembly is not stabilized.
+    #[inline(always)] pub fn return_autoreleased(self) -> *mut T {
+        let ptr = self.0.as_ptr();
+        std::mem::forget(self); //LEAK
+        unsafe{ objc_autoreleaseReturnValue(ptr as *const c_void) as *const T as *mut T }
+    }
 }
 
 impl<'a, T: ObjcInstance> Drop for StrongLifetimeCell<'a, T> {
