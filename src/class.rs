@@ -17,6 +17,8 @@ extern "C" {
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct AnyClass(c_void);
+unsafe impl Arguable for AnyClass{}
+impl ObjcInstance for AnyClass {}
 
 impl PartialEq for AnyClass {
     fn eq(&self, other: &Self) -> bool {

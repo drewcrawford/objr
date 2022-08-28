@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 use crate::arguments::Arguable;
-use crate::bindings::{StrongCell, AutoreleasedCell, StrongLifetimeCell, StrongMutCell};
+use crate::bindings::{StrongCell, AutoreleasedCell, StrongLifetimeCell, StrongMutCell, Sel};
 use crate::autorelease::ActiveAutoreleasePool;
 
 ///Marks that a given type is an objc type, e.g. its instances are an objc object.
@@ -126,6 +126,15 @@ pub trait ObjcInstanceBehavior {
     ///Safely casts the object to an `Option<NonNullImmutable>`.  Suitable for implementing nullable functions.
     fn nullable(ptr: *const Self) -> Option<NonNullImmutable<Self>>;
 
+    fn is_kind_of_class(&self, class: &AnyClass, pool: &ActiveAutoreleasePool) -> bool;
+
+}
+
+objr::bindings::objc_selector_group! {
+    trait IsKindOfClass {
+        @selector("isKindOfClass:")
+    }
+    impl IsKindOfClass for Sel {}
 }
 
 impl<T: ObjcInstance> ObjcInstanceBehavior for T {
@@ -149,6 +158,12 @@ impl<T: ObjcInstance> ObjcInstanceBehavior for T {
         }
     }
 
+    fn is_kind_of_class(&self, class: &AnyClass, pool: &ActiveAutoreleasePool) -> bool {
+        use crate::performselector::PerformsSelector;
+        use crate::arguments::ArguableBehavior;
+        unsafe{Self::perform_primitive(self.assume_nonmut_perform(), Sel::isKindOfClass_(),pool, (class.assume_nonmut_perform(),) )}
+
+    }
 }
 
 ///Helper for Option<NonNullable>
@@ -481,6 +496,8 @@ macro_rules! objc_instance_no_debug  {
     };
 }
 pub(crate) use objc_instance_no_debug;
+use objr::foundation::autoreleasepool;
+use crate::class::AnyClass;
 
 
 /**
@@ -564,4 +581,14 @@ impl<T: ObjcInstance> OptionalInstanceBehavior<T> for Option<&T> {
             std::ptr::null()
         }
     }
+}
+
+#[test] fn is_kind_of_class() {
+    use objr::nsstring::NSString;
+    use crate::class::ObjcClass;
+    autoreleasepool(|pool| {
+        let s = NSString::with_str_copy("hello",pool);
+        assert!(s.is_kind_of_class(NSString::class().as_anyclass(),pool));
+    });
+
 }
