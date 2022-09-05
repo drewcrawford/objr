@@ -138,6 +138,10 @@ to binding Apple technologies to Rust.
 * [corevideor](https://github.com/drewcrawford/corevideor) binds Core Video
 * [quartzcorer](https://github.com/drewcrawford/quartzcorer) binds Core Animation
 * [appkitr](https://github.com/drewcrawford/appkitr) binds AppKit
+* [metalr](https://github.com/drewcrawford/metalr) binds Metal
+* [metalkitr](https://github.com/drewcrawford/metalkitr) binds MetalKit.
+* [gamecontrollerr](https://github.com/drewcrawford/gamecontrollerr) binds GameController.framework
+* [coretextr](https://github.com/drewcrawford/coretextr) binds CoreText
 */
 extern crate self as objr;
 pub mod macros;

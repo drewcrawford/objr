@@ -363,6 +363,10 @@ arguments_impl!(a: A, b: B, c: C, d: D, e: E, f: F);
 arguments_impl!(a: A, b: B, c: C, d: D, e: E, f: F, g: G);
 arguments_impl!(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H);
 arguments_impl!(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I);
+arguments_impl!(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J); //10
+arguments_impl!(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K); //11
+arguments_impl!(a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L); //12
+
 
 #[test]
 fn perform_super() {

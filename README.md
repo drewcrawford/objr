@@ -141,3 +141,4 @@ to binding Apple technologies to Rust.
 * [metalr](https://github.com/drewcrawford/metalr) binds Metal
 * [metalkitr](https://github.com/drewcrawford/metalkitr) binds MetalKit.
 * [gamecontrollerr](https://github.com/drewcrawford/gamecontrollerr) binds GameController.framework
+* [coretextr](https://github.com/drewcrawford/coretextr) binds CoreText
