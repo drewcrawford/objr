@@ -496,7 +496,6 @@ macro_rules! objc_instance_no_debug  {
     };
 }
 pub(crate) use objc_instance_no_debug;
-use objr::foundation::autoreleasepool;
 use crate::class::AnyClass;
 
 
@@ -584,6 +583,7 @@ impl<T: ObjcInstance> OptionalInstanceBehavior<T> for Option<&T> {
 }
 
 #[test] fn is_kind_of_class() {
+    use objr::bindings::autoreleasepool;
     use objr::nsstring::NSString;
     use crate::class::ObjcClass;
     autoreleasepool(|pool| {

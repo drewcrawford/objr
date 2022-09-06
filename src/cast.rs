@@ -1,5 +1,15 @@
 /*! Cast behavior. */
 
+/**ObjC type that can be cast to another type.
+
+By implementing this trait you promise that pointers of one type can be cast to pointers of another type.
+This is primarily used to implement casting on cell types, which cannot be used with `From`/`Into` because implementing
+those do not require an unsafe construct.
+*/
+pub unsafe trait ReinterpretCast {
+    type Target;
+}
+
 /**
 Allows casting from one type to another.
 
@@ -89,6 +99,9 @@ macro_rules! objc_cast {
             fn from(a: &'s mut $from) -> Self {
                 a.$methname_mut()
             }
+        }
+        unsafe impl $crate::bindings::ReinterpretCast for $from {
+            type Target = $to;
         }
     };
 }

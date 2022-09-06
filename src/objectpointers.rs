@@ -24,7 +24,9 @@ use crate::objcinstance::NonNullImmutable;
 use std::ptr::NonNull;
 use std::fmt::{Formatter};
 use std::hash::{Hash, Hasher};
+use std::mem::forget;
 use std::ops::{DerefMut};
+use crate::cast::ReinterpretCast;
 use crate::objcinstance::ObjcInstanceBehavior;
 
 
@@ -145,6 +147,15 @@ impl<'a, T: Hash + ObjcInstance> Hash for AutoreleasedCell<'a, T> {
     }
 }
 
+impl<'a, T: ObjcInstance + ReinterpretCast<Target=U>, U: ObjcInstance> AutoreleasedCell<'a, T> {
+    pub fn safe_cast_into(self) -> AutoreleasedCell<'a, U> {
+        AutoreleasedCell{
+            ptr: unsafe{NonNullImmutable::assume_nonnil(self.ptr.as_ptr() as *const U)},
+            marker: PhantomData
+        }
+    }
+}
+
 /**
 An objc object that is part of an autorelease pool
 
@@ -184,10 +195,14 @@ impl<'a, T: ObjcInstance> AutoreleasedMutCell<'a, T> {
     ///Casts to an NSObject.
     pub const fn into_nsobject(self) -> AutoreleasedMutCell<'a, NSObject> {
         unsafe {
+            let r =
             AutoreleasedMutCell {
                 ptr: NonNull::new_unchecked(self.ptr.as_ptr() as *mut _ as *mut NSObject ),
                 marker: PhantomData,
-            }
+            };
+            //there is no drop behavior to speak of, but just in case we add some in the future
+            forget(self);
+            r
         }
     }
 
@@ -235,6 +250,14 @@ impl<'a, T: Hash + ObjcInstance> Hash for AutoreleasedMutCell<'a, T> {
 }
 impl<'a, T: ObjcInstance> std::error::Error for AutoreleasedMutCell<'a, T> where T: std::error::Error {}
 
+impl<'a, T: ObjcInstance + ReinterpretCast<Target=U>, U: ObjcInstance> AutoreleasedMutCell<'a, T> {
+    pub fn safe_cast_into(self) -> AutoreleasedMutCell<'a, U> {
+        AutoreleasedMutCell{
+            ptr: unsafe{NonNull::new_unchecked(self.ptr.as_ptr() as *mut U)},
+            marker: PhantomData
+        }
+    }
+}
 
 /**
 A strong pointer to an objc object.
@@ -400,10 +423,18 @@ impl<T: Hash + ObjcInstance> Hash for StrongCell<T> {
 }
 impl<T: std::error::Error + ObjcInstance> std::error::Error for StrongCell<T> {}
 
+impl<'a, T: ObjcInstance + ReinterpretCast<Target=U>, U: ObjcInstance> StrongCell<T> {
+    pub fn safe_cast_into(self) -> StrongCell<U> {
+        unsafe{self.cast_into()}
+    }
+}
+
 //If the underlying objc instance is sync, we are Send
 unsafe impl<T: ObjcInstance + Sync> Send for StrongCell<T> {}
 ///We are also Sync, because of the above situation and because ARC is threadsafe.
 unsafe impl<T: ObjcInstance + Sync> Sync for StrongCell<T> {}
+
+
 
 ///Like StrongCell, but restricted to a particular lifetime.
 ///
@@ -514,6 +545,12 @@ impl<'a, T: Hash + ObjcInstance> Hash for StrongLifetimeCell<'a, T> {
     }
 }
 impl<'a, T: std::error::Error + ObjcInstance> std::error::Error for StrongLifetimeCell<'a, T> {}
+
+impl<'a, T: ObjcInstance + ReinterpretCast<Target=U>, U: ObjcInstance + 'a> StrongLifetimeCell<'a, T> {
+    pub fn safe_cast_into(self) -> StrongLifetimeCell<'a, U> {
+        unsafe{self.cast_into()}
+    }
+}
 
 
 ///[StrongCell], but mutable
@@ -650,3 +687,8 @@ impl<T: Hash + ObjcInstance> Hash for StrongMutCell<T> {
     }
 }
 impl<T: std::error::Error + ObjcInstance> std::error::Error for StrongMutCell<T> {}
+impl<'a, T: ObjcInstance + ReinterpretCast<Target=U>, U: ObjcInstance> StrongMutCell<T> {
+    pub fn safe_cast_into(self) -> StrongMutCell<U> {
+        unsafe{self.cast_into()}
+    }
+}
