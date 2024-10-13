@@ -33,7 +33,7 @@ fn unbox_group(tree: TokenTree) -> TokenTree {
 
 #[derive(Debug)]
 pub enum ParsedLiteral {
-    RawLiteral(String),
+    RawLiteral(()),
     Literal(String)
 }
 impl ParsedLiteral {
@@ -77,7 +77,7 @@ pub fn parse_literal_string<I: Iterator<Item=TokenTree>>(iterator: &mut I) -> Re
             parsed_string.remove(0);
             parsed_string.remove(0);
             parsed_string.remove(0);
-            Ok(ParsedLiteral::RawLiteral(parsed_string))
+            Ok(ParsedLiteral::RawLiteral(()))
         }
         other => {
             Err(format!("unexpected {:?}",other))

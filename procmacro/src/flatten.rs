@@ -4,14 +4,14 @@
 //! This is often useful because, for reasons I don't fully understand,
 //! Rust likes to put things in random groups when I don't think they should
 //! be, I just want to parse some literal or ident for example.
-use proc_macro::{TokenTree,Ident,Punct,Literal};
+use proc_macro::{TokenTree,Ident};
 use proc_macro::token_stream::IntoIter;
 ///Like TokenTree, but without [TokenTree::Group]
 #[derive(Debug)]
 pub enum FlatTree {
     Ident(Ident),
-    Punct(Punct),
-    Literal(Literal)
+    Punct(()),
+    Literal(())
 }
 ///Iterator type for `FlatTree`.
 pub struct FlatIterator {
@@ -45,11 +45,11 @@ impl Iterator for FlatIterator {
                         TokenTree::Ident(i) => {
                             return Some(FlatTree::Ident(i))
                         }
-                        TokenTree::Punct(p) => {
-                            return Some(FlatTree::Punct(p))
+                        TokenTree::Punct(..) => {
+                            return Some(FlatTree::Punct(()))
                         }
-                        TokenTree::Literal(l) => {
-                            return Some(FlatTree::Literal(l))
+                        TokenTree::Literal(..) => {
+                            return Some(FlatTree::Literal(()))
                         }
                     }
                 }
