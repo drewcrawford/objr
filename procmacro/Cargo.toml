@@ -6,6 +6,7 @@ version = "1.0.0"
 authors = ["Drew Crawford <drew@sealedabstract.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
+description = "procmacro crate for objr"
 
 
 [lib]
