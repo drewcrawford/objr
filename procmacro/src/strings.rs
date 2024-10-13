@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 ///Emits the code we need for a static string expression.
 pub fn static_string(string_literal: &str) -> String {
 

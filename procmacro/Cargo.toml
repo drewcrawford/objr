@@ -1,10 +1,12 @@
 
 
 [package]
-name = "procmacro"
-version = "0.1.0"
+name = "objr_procmacro"
+version = "1.0.0"
 authors = ["Drew Crawford <drew@sealedabstract.com>"]
-edition = "2018"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
 
 [lib]
 proc-macro = true

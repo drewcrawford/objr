@@ -14,7 +14,7 @@ exclude = [".*","art"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-procmacro = { version = "0.1.0",path = "procmacro" }
+objr_procmacro = { version = "1.0.0",path = "procmacro" }
 
 [dev-dependencies]
 criterion = "0.3"

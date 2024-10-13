@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Contains the implementation for ::objr::bindings::ObjcClass.
 
 

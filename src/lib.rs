@@ -178,7 +178,7 @@ pub mod foundation {
     pub use super::nsobject::NSObjectSelectors;
     pub use super::class::ObjcClass;
     pub use super::nserror::{NSError};
-    pub use procmacro::objc_nsstring;
+    pub use objr_procmacro::objc_nsstring;
     pub use super::autorelease::autoreleasepool;
     pub use super::bindings::ObjcInstanceBehavior;
     pub use super::nserror::ResultNSError;
@@ -207,7 +207,7 @@ pub mod bindings {
     pub use crate::objc_class_newtype;
     pub use crate::objc_cast;
     pub use crate::cast::ReinterpretCast;
-    pub use procmacro::{__objc_implement_class,ObjcInstance,__static_expr,__static_extern,__static_asciiz_ident_as_selector,__static_asciiz_ident_as_type_encoding,__count,__concat_idents,__static_asciiz,__static_expr3,__concat_3_idents,__type_declr};
+    pub use objr_procmacro::{__objc_implement_class,ObjcInstance,__static_expr,__static_extern,__static_asciiz_ident_as_selector,__static_asciiz_ident_as_type_encoding,__count,__concat_idents,__static_asciiz,__static_expr3,__concat_3_idents,__type_declr};
     pub use super::class::AnyClass;
     pub use super::arguments::{Primitive,Arguable,ArguableBehavior};
     pub use super::exception::{try_unwrap_void};
@@ -220,7 +220,7 @@ pub mod bindings {
 
     //used by macros
     #[doc(hidden)]
-    pub use procmacro::{_objc_selector_decl,_objc_selector_impl,__use,__mod};
+    pub use objr_procmacro::{_objc_selector_decl,_objc_selector_impl,__use,__mod};
 
 }
 

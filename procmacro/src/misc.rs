@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Misc helper functions
 use proc_macro::{TokenTree, TokenStream};
 ///Returns an error

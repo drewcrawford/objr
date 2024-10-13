@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! This module implements 'flat parsing', e.g. doing a depth-first
 //! traversal of groups.
 //!

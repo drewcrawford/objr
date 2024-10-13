@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 ///Returns an implementation of ObjcInstance for type
 pub fn instance_impl(_type: &str) -> String{
     format!(r#"

@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Selector helper functions
 extern crate proc_macro;
 

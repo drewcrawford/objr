@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! objr procmacro library
 //! Implements a variety of helper macros for the main crate.
 //!

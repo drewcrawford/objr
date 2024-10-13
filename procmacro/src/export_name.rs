@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Helper functions to emit various link instructions
 
 /// __static_asciz!("LINK_SECTION",IDENT,"ascii")
