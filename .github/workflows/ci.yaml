@@ -1,7 +1,7 @@
 on: [push]
 jobs:
   ci:
-    runs-on: macos-11
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v2
       - run: cargo test
