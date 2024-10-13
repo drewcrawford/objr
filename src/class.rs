@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
 ///! Implementation of ObjC classes.  Classes are distinct from instances (which could be, for example, protocols).
 use std::ffi::{c_void, CStr};
 use super::performselector::PerformablePointer;

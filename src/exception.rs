@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
 ///! Support for objc exceptions.
 
 use std::ffi::c_void;

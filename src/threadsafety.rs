@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 /** Indicates some particular use of a type is implied to be threadsafe by ObjC convention.
 
 This type is used in cases where we are modeling some Cocoa API guarantee where the details

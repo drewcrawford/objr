@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
 /*!
 # Drew's very fast objc library
 This library provides low-level bindings to ObjC, which is in practice the ABI for macOS.  You might compare

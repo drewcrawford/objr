@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 use std::ffi::c_void;
 use super::arguments::{Arguments};
 use super::arguments::Primitive;

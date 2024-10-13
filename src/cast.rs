@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
 /*! Cast behavior. */
 
 /**ObjC type that can be cast to another type.

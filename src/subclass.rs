@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __objc_sublcass_implpart_method_prelude {

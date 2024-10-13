@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
 ///!Rust doesn't natively support varargs, so encoding the args
 ///!into an "anonymous" type that implements this trait is a convenient
 ///! way to pass the objcargs to functions.

@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
 //! Bindings for NSObject
 //!
 use objr::bindings::{ActiveAutoreleasePool,Sel};

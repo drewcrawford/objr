@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! These are typealiases to the types used in objc
 
 use std::os::raw::{c_ulong};
