@@ -1,14 +1,20 @@
 [package]
 name = "objr"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Drew Crawford <drew@sealedabstract.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
-
+description = "Drew's very fast ObjC Rust bindings"
+homepage = "https://sealedabstract.com/code/objr"
+repository = "https://github.com/drewcrawford/objr"
+keywords = ["objc", "macos", "ffi", "bindings"]
+categories = ["os::macos-apis", "development-tools::ffi", "os"]
+rust-version = "1.63.0"
+exclude = [".*","art"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-procmacro = { path = "procmacro" }
+procmacro = { version = "0.1.0",path = "procmacro" }
 
 [dev-dependencies]
 criterion = "0.3"
